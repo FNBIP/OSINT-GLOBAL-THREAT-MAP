@@ -104,3 +104,51 @@ export const categoryIcons: Record<EventCategory, string> = {
   infrastructure: "Droplets",
   commodities: "ShoppingCart",
 };
+
+// --- Nostr Chat Types ---
+
+export interface NostrKeypair {
+  privateKey: Uint8Array;
+  publicKey: string;
+}
+
+export type NostrRelayStatus =
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "error";
+
+export interface NostrRelay {
+  url: string;
+  status: NostrRelayStatus;
+}
+
+export interface NostrMessage {
+  id: string;
+  pubkey: string;
+  content: string;
+  created_at: number;
+  channel: string;
+  kind: number;
+  nickname?: string;
+  eventRef?: string;
+  isSystem?: boolean;
+}
+
+export interface NostrDM {
+  id: string;
+  pubkey: string;
+  recipientPubkey: string;
+  content: string;
+  created_at: number;
+  isMine: boolean;
+}
+
+export interface NostrChannel {
+  id: string; // geohash string or "#channelname"
+  type: "geohash" | "standard";
+  name: string;
+  messageCount: number;
+  lastActivity: number; // unix timestamp
+  participants: Set<string>; // unique pubkeys seen
+}

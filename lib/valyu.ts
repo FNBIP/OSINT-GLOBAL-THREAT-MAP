@@ -1221,17 +1221,31 @@ export async function getCountryConflicts(
   const pastData = pastResponse as AnswerResponse;
   const currentData = currentResponse as AnswerResponse;
 
+  // Check for API errors (e.g., insufficient credits)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pastError = (pastData as any).success === false ? (pastData as any).error : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentError = (currentData as any).success === false ? (currentData as any).error : null;
+
+  if (pastError && currentError) {
+    throw new Error(`Valyu API error: ${pastError}`);
+  }
+
   return {
     past: {
-      answer: pastData.contents || "No historical conflict information found.",
-      sources: (pastData.search_results || []).map((s) => ({
+      answer: pastError
+        ? `Unable to fetch historical conflicts: ${pastError}`
+        : pastData.contents || "No historical conflict information found.",
+      sources: pastError ? [] : (pastData.search_results || []).map((s) => ({
         title: s.title || "Source",
         url: s.url || "",
       })),
     },
     current: {
-      answer: currentData.contents || "No current conflict information found.",
-      sources: (currentData.search_results || []).map((s) => ({
+      answer: currentError
+        ? `Unable to fetch current conflicts: ${currentError}`
+        : currentData.contents || "No current conflict information found.",
+      sources: currentError ? [] : (currentData.search_results || []).map((s) => ({
         title: s.title || "Source",
         url: s.url || "",
       })),
@@ -1320,6 +1334,17 @@ export async function* streamCountryConflicts(
       streaming: true,
     });
 
+    // Check if the SDK returned an error instead of a stream
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentObj = currentStream as any;
+    if (currentObj && currentObj.success === false) {
+      yield {
+        type: "error",
+        error: currentObj.error || "Valyu API error (current conflicts)",
+      };
+      return;
+    }
+
     if (Symbol.asyncIterator in (currentStream as object)) {
       for await (const chunk of currentStream as AsyncGenerator<{
         type: string;
@@ -1344,6 +1369,17 @@ export async function* streamCountryConflicts(
       excludedSources: ["wikipedia.org"],
       streaming: true,
     });
+
+    // Check for error on past query too
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pastObj = pastStream as any;
+    if (pastObj && pastObj.success === false) {
+      yield {
+        type: "error",
+        error: pastObj.error || "Valyu API error (past conflicts)",
+      };
+      return;
+    }
 
     if (Symbol.asyncIterator in (pastStream as object)) {
       for await (const chunk of pastStream as AsyncGenerator<{

@@ -28,21 +28,24 @@ interface GdeltResponse {
   articles?: GdeltArticle[];
 }
 
-// Region-specific threat queries for global coverage
+// GDELT DOC 2.0 queries for global coverage
+// Rules: OR terms MUST be in parentheses, multi-word phrases in quotes,
+// implicit AND between groups, specific terms to avoid false positives
 const GDELT_QUERIES = [
-  // Global conflict & security
-  "attack OR bombing OR airstrike OR shelling",
-  "protest OR demonstration OR riot OR unrest",
-  "earthquake OR tsunami OR volcano OR hurricane OR cyclone",
-  "terrorism OR extremist OR militant",
-  "cyber attack OR data breach OR ransomware",
-  // Regional coverage to fill gaps
-  "Africa conflict crisis violence",
-  "South America protest cartel crime",
-  "Southeast Asia disaster typhoon flooding",
-  "Central Asia terrorism militant attack",
-  "Pacific earthquake volcano tsunami",
-  "Caribbean hurricane storm disaster",
+  // Global conflict & security — specific terms avoid false positives like "heart attack"
+  '(airstrike OR shelling OR "missile strike" OR bombing OR "military offensive")',
+  '("armed conflict" OR "troops killed" OR "soldiers killed" OR "ceasefire" OR "war crimes")',
+  '(protest OR riot OR unrest OR "civil unrest" OR demonstration)',
+  '(terrorism OR "terrorist attack" OR extremist OR militant OR insurgent)',
+  '("cyber attack" OR "data breach" OR ransomware OR "hacking")',
+  // Natural disasters
+  '(earthquake OR tsunami OR volcano OR hurricane OR cyclone OR typhoon OR "tropical storm")',
+  '(wildfire OR flooding OR "flash flood" OR drought OR landslide)',
+  // Regional conflict coverage — use OR between terms, not AND
+  '(Ukraine OR Gaza OR Sudan OR Yemen OR Syria OR Congo) (killed OR strike OR bombing OR offensive)',
+  '"Africa" AND (conflict OR violence OR "armed group" OR attack)',
+  '"Latin America" AND (cartel OR protest OR "gang violence" OR crime)',
+  '"Asia" AND (military OR "territorial dispute" OR missile OR "naval" OR tension)',
 ];
 
 /**
@@ -145,7 +148,7 @@ async function fetchGdeltQuery(query: string, maxRecords: number = 10): Promise<
       format: "json",
       maxrecords: String(maxRecords),
       sort: "datedesc",
-      timespan: "4h", // Last 4 hours for freshness
+      timespan: "12h", // Last 12 hours — conflict articles need wider window
     });
 
     const response = await fetch(`${GDELT_API_BASE}?${params}`, {
@@ -154,7 +157,15 @@ async function fetchGdeltQuery(query: string, maxRecords: number = 10): Promise<
 
     if (!response.ok) return [];
 
-    const data: GdeltResponse = await response.json();
+    // GDELT returns 200 even for errors, with plain text body
+    // Check content-type or try parsing defensively
+    const text = await response.text();
+    if (!text.startsWith("{") && !text.startsWith("[")) {
+      console.warn(`[GDELT] Non-JSON response for "${query}": ${text.slice(0, 100)}`);
+      return [];
+    }
+
+    const data: GdeltResponse = JSON.parse(text);
     return data.articles || [];
   } catch (error) {
     console.error(`[GDELT] Error fetching "${query}":`, error);
