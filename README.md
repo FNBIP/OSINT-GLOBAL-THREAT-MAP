@@ -39,6 +39,18 @@ Visualize global military presence:
 - **Automatic Loading** - Military base data loads when the map initializes
 - **Coverage** - Includes bases in Europe, Asia-Pacific, Middle East, Africa, and the Americas
 
+### BitChat Decentralized Comms
+
+Built-in encrypted chat powered by the Nostr protocol and BitChat geohash channels:
+
+- **Location-Based Channels** - Chat rooms automatically tied to your map viewport via geohashing — pan the map to switch regions
+- **284 Geo-Distributed Relays** - Connects to the [permissionlesstech/georelays](https://github.com/permissionlesstech/georelays) directory, using Haversine distance to find the closest relays to your location
+- **No Account Required** - Auto-generated cryptographic keypair stored locally, with export/import support
+- **Encrypted DMs** - NIP-04 encrypted direct messages between users
+- **23 Pre-Seeded Rooms** - Global coverage from US East Coast to Australia, with live activity indicators
+- **BitChat Protocol Compatible** - Uses kind 20000 (ephemeral geohash), kind 23333 (standard channel), and kind 1 events — fully interoperable with [bitchat.land](https://bitchat.land)
+- **Relay Management** - Add/remove relays, view connection status, supports `.onion` addresses for Tor
+
 ### Map Visualization
 
 - **Auto-Pan Mode** - Play/pause button to automatically pan across the globe
@@ -52,6 +64,7 @@ Visualize global military presence:
 - **Map**: Mapbox GL JS + react-map-gl
 - **UI**: Tailwind CSS v4 + custom components
 - **Intelligence API**: valyu-js (search, answer, deep research)
+- **Decentralized Chat**: nostr-tools (Nostr protocol / BitChat)
 - **Schema Validation**: zod
 - **State Management**: Zustand
 - **Markdown**: react-markdown + remark-gfm
@@ -116,6 +129,13 @@ globalthreatmap/
 │   │   ├── threat-map.tsx      # Main map component
 │   │   ├── timeline-scrubber.tsx # Auto-pan controls
 │   │   └── country-conflicts-modal.tsx # Conflict details modal
+│   ├── chat/                   # BitChat/Nostr chat components
+│   │   ├── chat-panel.tsx      # Main chat container
+│   │   ├── channel-header.tsx  # Region name, room selector
+│   │   ├── chat-message.tsx    # Message bubbles
+│   │   ├── chat-input.tsx      # Message input
+│   │   ├── dm-panel.tsx        # Encrypted DMs
+│   │   └── relay-status.tsx    # Relay config & identity
 │   ├── feed/                   # Event feed components
 │   ├── search/                 # Entity search components
 │   ├── alerts/                 # Alert management
@@ -123,10 +143,14 @@ globalthreatmap/
 │       └── markdown.tsx        # Markdown renderer
 ├── lib/
 │   ├── valyu.ts                # Valyu client & API functions
+│   ├── nostr.ts                # Nostr protocol client (keys, pool, subs)
+│   ├── georelays.ts            # Geo-distributed relay directory
+│   ├── geohash.ts              # Geohash encoding/decoding
 │   ├── geocoding.ts            # Location extraction
 │   └── event-classifier.ts     # Event classification
 ├── stores/
-│   └── map-store.ts            # Map state (viewport, layers, bases)
+│   ├── map-store.ts            # Map state (viewport, layers, bases)
+│   └── nostr-store.ts          # Chat state (messages, relays, DMs)
 ├── types/                      # TypeScript types
 └── hooks/                      # React hooks
 ```
@@ -147,6 +171,17 @@ The event feed displays real-time global events. You can:
 - Filter by category (Conflict, Protest, Disaster, Diplomatic, etc.)
 - Search events by keyword
 - Click on events to fly to their location on the map
+
+### BitChat Comms
+
+Click the **Comms** tab in the sidebar to access decentralized chat:
+
+- **Chat** - Send and receive messages in the current geohash channel (auto-switches as you pan the map)
+- **Rooms** - Click the channel header to browse 23 pre-seeded global rooms with live activity indicators
+- **Private** - Send NIP-04 encrypted direct messages by entering a recipient's public key
+- **Settings** - View/copy your public key, export/import your private key, manage relay connections
+
+No signup needed — a cryptographic identity is generated automatically on first visit.
 
 ### Auto-Pan Mode
 
