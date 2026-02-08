@@ -2,15 +2,10 @@
 
 A real-time global situational awareness platform that plots security events, geopolitical developments, and threat indicators on an interactive map. Think of it as an OSINT (Open Source Intelligence) command center.
 
-![](https://4ealzrotsszllxtz.public.blob.vercel-storage.com/globalthreatmap)
-
-![](https://4ealzrotsszllxtz.public.blob.vercel-storage.com/historicalconflicts)
-
-![](https://4ealzrotsszllxtz.public.blob.vercel-storage.com/hezbolla_research)
-
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/open-source-intelligence-command-center?referralCode=yuv1Gy&utm_medium=integration&utm_source=template&utm_campaign=generic)
-
+<!-- Add your screenshots here -->
+<!-- ![Global Threat Map](screenshot-url-here) -->
+<!-- ![Country Conflicts](screenshot-url-here) -->
+<!-- ![Intel Dossier](screenshot-url-here) -->
 
 ## Features
 
