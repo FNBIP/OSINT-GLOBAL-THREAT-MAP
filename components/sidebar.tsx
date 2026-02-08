@@ -1,0 +1,91 @@
+"use client";
+
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { EventFeed } from "@/components/feed/event-feed";
+import { EntitySearch } from "@/components/search/entity-search";
+import { Activity, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+
+type Tab = "feed" | "search";
+
+export function Sidebar() {
+  const [activeTab, setActiveTab] = useState<Tab>("feed");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const tabs = [
+    { id: "feed" as Tab, label: "Live Feed", icon: Activity },
+    { id: "search" as Tab, label: "Intel", icon: FileText },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "relative flex h-full flex-col border-l border-border bg-card transition-all duration-300",
+        isCollapsed ? "w-12" : "w-96"
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -left-3 top-4 z-10 h-6 w-6 rounded-full border border-border bg-card"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        {isCollapsed ? (
+          <ChevronLeft className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+      </Button>
+
+      {!isCollapsed && (
+        <>
+          <div className="flex border-b border-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium transition-colors",
+                  activeTab === tab.id
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {activeTab === "feed" && <EventFeed />}
+            {activeTab === "search" && <EntitySearch />}
+          </div>
+        </>
+      )}
+
+      {isCollapsed && (
+        <div className="flex flex-col items-center gap-2 pt-12">
+          {tabs.map((tab) => (
+            <Button
+              key={tab.id}
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setActiveTab(tab.id);
+                setIsCollapsed(false);
+              }}
+              className={cn(
+                "h-8 w-8",
+                activeTab === tab.id && "bg-primary/20 text-primary"
+              )}
+            >
+              <tab.icon className="h-4 w-4" />
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
