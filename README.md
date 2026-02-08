@@ -2,6 +2,8 @@
 
 A real-time global situational awareness platform that plots security events, geopolitical developments, and threat indicators on an interactive map. Think of it as an OSINT (Open Source Intelligence) command center.
 
+![Global Threat Map](assets/osint-global-threat-map.png)
+
 <!-- Add your screenshots here -->
 <!-- ![Global Threat Map](screenshot-url-here) -->
 <!-- ![Country Conflicts](screenshot-url-here) -->
