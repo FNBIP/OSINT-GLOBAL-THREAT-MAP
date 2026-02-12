@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useEvents } from "@/hooks/use-events";
+import { useNews } from "@/hooks/use-news";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { ThreatMap } from "@/components/map/threat-map";
@@ -19,6 +20,7 @@ export default function Home() {
     autoRefresh: true,
     refreshInterval: 300000, // 5 minutes
   });
+  useNews({ autoRefresh: true, refreshInterval: 300000 });
 
   useEffect(() => {
     const dismissed = localStorage.getItem(WELCOME_DISMISSED_KEY);

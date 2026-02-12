@@ -6,24 +6,29 @@ import { Button } from "@/components/ui/button";
 import { EventFeed } from "@/components/feed/event-feed";
 import { EntitySearch } from "@/components/search/entity-search";
 import { ChatPanel } from "@/components/chat/chat-panel";
+import { NewsPanel } from "@/components/news/news-panel";
 import { useNostrStore } from "@/stores/nostr-store";
+import { useNewsStore } from "@/stores/news-store";
 import {
   Activity,
   FileText,
   ChevronLeft,
   ChevronRight,
   Radio,
+  Newspaper,
 } from "lucide-react";
 
-type Tab = "feed" | "search" | "comms";
+type Tab = "feed" | "news" | "search" | "comms";
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState<Tab>("feed");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const unreadCount = useNostrStore((s) => s.unreadCount);
+  const unreadNewsCount = useNewsStore((s) => s.unreadCount);
 
   const tabs = [
     { id: "feed" as Tab, label: "Live Feed", icon: Activity },
+    { id: "news" as Tab, label: "News", icon: Newspaper },
     { id: "search" as Tab, label: "Intel", icon: FileText },
     { id: "comms" as Tab, label: "Comms", icon: Radio },
   ];
@@ -32,6 +37,9 @@ export function Sidebar() {
     setActiveTab(tabId);
     if (tabId === "comms") {
       useNostrStore.getState().resetUnread();
+    }
+    if (tabId === "news") {
+      useNewsStore.getState().markAsRead();
     }
   };
 
@@ -76,12 +84,18 @@ export function Sidebar() {
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
+                {tab.id === "news" && unreadNewsCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+                    {unreadNewsCount > 99 ? "99+" : unreadNewsCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
           <div className="flex-1 overflow-hidden">
             {activeTab === "feed" && <EventFeed />}
+            {activeTab === "news" && <NewsPanel />}
             {activeTab === "search" && <EntitySearch />}
             {activeTab === "comms" && <ChatPanel />}
           </div>
@@ -108,6 +122,11 @@ export function Sidebar() {
               {tab.id === "comms" && unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[8px] text-primary-foreground">
                   {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+              {tab.id === "news" && unreadNewsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[8px] text-primary-foreground">
+                  {unreadNewsCount > 99 ? "99+" : unreadNewsCount}
                 </span>
               )}
             </Button>
