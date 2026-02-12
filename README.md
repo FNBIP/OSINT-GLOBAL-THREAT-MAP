@@ -316,7 +316,3 @@ globalthreatmap/
 └── lib/
     └── oauth.ts               # PKCE utilities
 ```
-
-## License
-
-MIT
