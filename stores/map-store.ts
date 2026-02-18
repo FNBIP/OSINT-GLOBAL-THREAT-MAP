@@ -13,6 +13,61 @@ export interface MilitaryBaseMarker {
   type: "usa" | "nato";
 }
 
+// Worldmonitor-style map layers (matching their fullLayers list)
+export interface MapLayers {
+  conflicts:  boolean;
+  hotspots:   boolean;
+  sanctions:  boolean;
+  protests:   boolean;
+  bases:      boolean;
+  nuclear:    boolean;
+  cables:     boolean;
+  pipelines:  boolean;
+  outages:    boolean;
+  ais:        boolean;
+  flights:    boolean;
+  natural:    boolean;
+  weather:    boolean;
+  economic:   boolean;
+  waterways:  boolean;
+}
+
+export const LAYER_LABELS: Record<keyof MapLayers, string> = {
+  conflicts:  "Conflicts",
+  hotspots:   "Hotspots",
+  sanctions:  "Sanctions",
+  protests:   "Protests",
+  bases:      "Mil. Bases",
+  nuclear:    "Nuclear",
+  cables:     "Cables",
+  pipelines:  "Pipelines",
+  outages:    "Outages",
+  ais:        "AIS / Ships",
+  flights:    "Flights",
+  natural:    "Natural",
+  weather:    "Weather",
+  economic:   "Economic",
+  waterways:  "Waterways",
+};
+
+const DEFAULT_LAYERS: MapLayers = {
+  conflicts:  true,
+  hotspots:   true,
+  sanctions:  true,
+  protests:   false,
+  bases:      true,
+  nuclear:    true,
+  cables:     false,
+  pipelines:  false,
+  outages:    true,
+  ais:        false,
+  flights:    false,
+  natural:    true,
+  weather:    true,
+  economic:   true,
+  waterways:  true,
+};
+
 interface MapState {
   viewport: MapViewport;
   showHeatmap: boolean;
@@ -25,6 +80,7 @@ interface MapState {
   entityLocations: EntityLocationMarker[];
   militaryBases: MilitaryBaseMarker[];
   militaryBasesLoading: boolean;
+  layers: MapLayers;
 
   setViewport: (viewport: Partial<MapViewport>) => void;
   flyTo: (longitude: number, latitude: number, zoom?: number) => void;
@@ -32,6 +88,7 @@ interface MapState {
   toggleClusters: () => void;
   toggleWatchboxes: () => void;
   toggleMilitaryBases: () => void;
+  toggleLayer: (layer: keyof MapLayers) => void;
   startDrawingWatchbox: () => void;
   stopDrawingWatchbox: () => void;
   setActiveWatchbox: (id: string | null) => void;
@@ -63,6 +120,7 @@ export const useMapStore = create<MapState>((set) => ({
   entityLocations: [],
   militaryBases: [],
   militaryBasesLoading: false,
+  layers: DEFAULT_LAYERS,
 
   setViewport: (viewport) =>
     set((state) => ({
@@ -97,7 +155,18 @@ export const useMapStore = create<MapState>((set) => ({
   toggleMilitaryBases: () =>
     set((state) => ({
       showMilitaryBases: !state.showMilitaryBases,
+      layers: { ...state.layers, bases: !state.showMilitaryBases },
     })),
+
+  toggleLayer: (layer) =>
+    set((state) => {
+      const next = !state.layers[layer];
+      // Keep showMilitaryBases in sync with the bases layer
+      return {
+        layers: { ...state.layers, [layer]: next },
+        ...(layer === "bases" ? { showMilitaryBases: next } : {}),
+      };
+    }),
 
   startDrawingWatchbox: () => set({ isDrawingWatchbox: true }),
 
