@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { NewsCard } from "./news-card";
 import { NewsClusterCard } from "./news-cluster-card";
 import { NewsFilters } from "./news-filters";
-import { VideoStreams } from "./video-streams";
 import { Layers } from "lucide-react";
 
 export function NewsPanel() {
@@ -140,9 +139,6 @@ export function NewsPanel() {
 
       {/* Filters */}
       <NewsFilters />
-
-      {/* Live Video Streams */}
-      <VideoStreams />
 
       {/* Content */}
       <ScrollArea className="flex-1">

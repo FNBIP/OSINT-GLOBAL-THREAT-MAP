@@ -3,15 +3,17 @@
 import { useEventsStore } from "@/stores/events-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, RefreshCw, Activity, HelpCircle } from "lucide-react";
+import { Globe, RefreshCw, Activity, HelpCircle, Map, LayoutGrid } from "lucide-react";
 
 interface HeaderProps {
   onRefresh: () => void;
   isLoading: boolean;
   onShowHelp?: () => void;
+  view?: "map" | "dashboard";
+  onViewChange?: (v: "map" | "dashboard") => void;
 }
 
-export function Header({ onRefresh, isLoading, onShowHelp }: HeaderProps) {
+export function Header({ onRefresh, isLoading, onShowHelp, view, onViewChange }: HeaderProps) {
   const { filteredEvents } = useEventsStore();
 
   const threatCounts = filteredEvents.reduce(
@@ -35,6 +37,62 @@ export function Header({ onRefresh, isLoading, onShowHelp }: HeaderProps) {
           <Activity className="mr-1 h-3 w-3" />
           Live
         </Badge>
+
+        {/* View toggle */}
+        {onViewChange && (
+          <div
+            style={{
+              display: "flex",
+              background: "rgba(255,255,255,0.05)",
+              borderRadius: 6,
+              padding: 2,
+              gap: 2,
+            }}
+          >
+            <button
+              onClick={() => onViewChange("map")}
+              title="Map view"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 10px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
+                background: view === "map" ? "rgba(0,170,255,0.2)" : "transparent",
+                color: view === "map" ? "#00aaff" : "rgba(255,255,255,0.4)",
+                transition: "all 0.15s",
+              }}
+            >
+              <Map style={{ width: 12, height: 12 }} />
+              Map
+            </button>
+            <button
+              onClick={() => onViewChange("dashboard")}
+              title="Dashboard view"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 10px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
+                background: view === "dashboard" ? "rgba(0,170,255,0.2)" : "transparent",
+                color: view === "dashboard" ? "#00aaff" : "rgba(255,255,255,0.4)",
+                transition: "all 0.15s",
+              }}
+            >
+              <LayoutGrid style={{ width: 12, height: 12 }} />
+              Dashboard
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2 text-sm text-muted-foreground">
