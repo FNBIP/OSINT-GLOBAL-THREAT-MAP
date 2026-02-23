@@ -289,9 +289,9 @@ export function WorldviewHUD({
             <LayerRow icon="⚠" name="Conflicts"       count="142"  active={layers.conflicts}  onToggle={() => toggleLayer("conflicts")} color="#ff4444" />
             <LayerRow icon="⊕" name="Earthquakes (24h)" count="—"  active={layers.natural}   onToggle={() => toggleLayer("natural")}   color="#ff9900" />
             <LayerRow icon="◉" name="Satellites"      count={180}  active={layers.satellites} onToggle={() => toggleLayer("satellites")} color="#ff6600" />
-            <LayerRow icon="⊘" name="Street Traffic"  count="—"    active={false}             onToggle={() => {}}                      color="#ffcc00" />
+            <LayerRow icon="⊘" name="Street Traffic"  count="LIVE" active={layers.traffic}    onToggle={() => toggleLayer("traffic")}  color="#ffcc00" />
             <LayerRow icon="☁" name="Weather Radar"   count="—"    active={layers.weather}    onToggle={() => toggleLayer("weather")}  color="#44aaff" />
-            <LayerRow icon="◎" name="CCTV Mesh"       count={36}   active={false}             onToggle={() => {}}                      color="#aa44ff" />
+            <LayerRow icon="◎" name="CCTV Mesh"       count={36}   active={layers.cctv}       onToggle={() => toggleLayer("cctv")}     color="#aa44ff" />
             <LayerRow icon="⚓" name="AIS / Ships"    count="—"    active={layers.ais}        onToggle={() => toggleLayer("ais")}      color="#00ccff" />
             <LayerRow icon="☢" name="Nuclear"         count="—"    active={layers.nuclear}    onToggle={() => toggleLayer("nuclear")}  color="#88ff00" />
             <LayerRow icon="⚑" name="Mil. Bases"      count="—"    active={layers.bases}      onToggle={() => toggleLayer("bases")}   color="#22c55e" />

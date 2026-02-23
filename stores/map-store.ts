@@ -31,6 +31,8 @@ export interface MapLayers {
   weather:     boolean;
   economic:    boolean;
   waterways:   boolean;
+  traffic:     boolean;  // Mapbox real-time road traffic
+  cctv:        boolean;  // CCTV / traffic camera feeds
 }
 
 export const LAYER_LABELS: Record<keyof MapLayers, string> = {
@@ -50,6 +52,8 @@ export const LAYER_LABELS: Record<keyof MapLayers, string> = {
   weather:     "Weather",
   economic:    "Economic",
   waterways:   "Waterways",
+  traffic:     "Traffic",
+  cctv:        "CCTV Mesh",
 };
 
 const DEFAULT_LAYERS: MapLayers = {
@@ -69,6 +73,8 @@ const DEFAULT_LAYERS: MapLayers = {
   weather:     true,
   economic:    true,
   waterways:   true,
+  traffic:     false,
+  cctv:        false,
 };
 
 export type MapSkin = "eo" | "flir" | "crt" | "nvg" | "anime" | "noir" | "snow" | "ai";

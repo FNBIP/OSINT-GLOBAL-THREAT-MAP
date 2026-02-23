@@ -234,12 +234,25 @@ export async function GET(request: Request) {
     const searchQueries = query ? [query] : THREAT_QUERIES;
     const tokenToUse = selfHosted ? undefined : accessToken;
 
+    type ValyuResult = Awaited<ReturnType<typeof searchEvents>>;
+
+    // Wrap Valyu in a hard 8s timeout — if it's slow, fall back to free sources
+    const valyuTimeout = new Promise<ValyuResult[]>((_, reject) =>
+      setTimeout(() => reject(new Error("Valyu timeout")), 8000)
+    );
+
     // Fetch from ALL sources in parallel
     const [valyuResults, gdeltEvents, eonetEvents] = await Promise.all([
-      // Valyu
-      Promise.all(
-        searchQueries.map((q) => searchEvents(q, { maxResults: 15, accessToken: tokenToUse || undefined }))
-      ),
+      // Valyu (with timeout, limit to 6 queries in self-hosted)
+      Promise.race([
+        Promise.all(
+          searchQueries.slice(0, 6).map((q) => searchEvents(q, { maxResults: 10, accessToken: tokenToUse || undefined }))
+        ),
+        valyuTimeout,
+      ]).catch((err) => {
+        console.warn("[VALYU] Skipped:", err.message);
+        return [] as ValyuResult[];
+      }),
       // GDELT (free, no auth)
       fetchGdeltEvents().catch((err) => {
         console.error("[GDELT] Failed:", err);
@@ -334,14 +347,26 @@ export async function POST(request: Request) {
       ? queries.slice(0, 12)
       : THREAT_QUERIES;
 
-    // Fetch from ALL sources in parallel
+    type ValyuResult2 = Awaited<ReturnType<typeof searchEvents>>;
+
+    // Fetch from ALL sources in parallel (Valyu with 8s timeout)
+    const valyuTimeout2 = new Promise<ValyuResult2[]>((_, reject) =>
+      setTimeout(() => reject(new Error("Valyu timeout")), 8000)
+    );
+
     const [valyuResults, gdeltEvents, eonetEvents] = await Promise.all([
-      // Valyu
-      Promise.all(
-        searchQueries.map((query: string) =>
-          searchEvents(query, { maxResults: 15, accessToken: tokenToUse })
-        )
-      ),
+      // Valyu (with timeout, limit queries)
+      Promise.race([
+        Promise.all(
+          searchQueries.slice(0, 6).map((query: string) =>
+            searchEvents(query, { maxResults: 10, accessToken: tokenToUse })
+          )
+        ),
+        valyuTimeout2,
+      ]).catch((err) => {
+        console.warn("[VALYU] Skipped:", err.message);
+        return [] as ValyuResult2[];
+      }),
       // GDELT (free, no auth)
       fetchGdeltEvents().catch((err) => {
         console.error("[GDELT] Failed:", err);

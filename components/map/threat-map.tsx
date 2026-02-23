@@ -20,6 +20,7 @@ import { EventPopup } from "./event-popup";
 import { CountryConflictsModal } from "./country-conflicts-modal";
 import { SignInModal } from "@/components/auth/sign-in-modal";
 import { WorldviewHUD } from "./worldview-hud";
+import { TrafficCamsPanel } from "@/components/panels/traffic-cams-panel";
 import type { AircraftState } from "@/app/api/flights/route";
 import type { SatellitePosition } from "@/app/api/satellites/route";
 import type { VesselState } from "@/app/api/ais/route";
@@ -379,6 +380,27 @@ const satelliteLabelLayer: LayerProps = {
   },
 };
 
+// ── Mapbox built-in traffic layers ──────────────────────────────────────────
+// These reference Mapbox's own traffic tile source (no extra API needed)
+const trafficFlowLayer: LayerProps = {
+  id: "traffic-flow",
+  type: "line",
+  source: "mapbox-traffic",
+  "source-layer": "traffic",
+  paint: {
+    "line-color": [
+      "match", ["get", "congestion"],
+      "low",    "#00cc44",
+      "moderate","#ffcc00",
+      "heavy",  "#ff6600",
+      "severe", "#ff2200",
+      "#00cc44",
+    ],
+    "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.5, 15, 4],
+    "line-opacity": 0.85,
+  },
+};
+
 function getSeverityValue(threatLevel: string): number {
   const values: Record<string, number> = {
     critical: 5,
@@ -428,6 +450,7 @@ export function ThreatMap() {
   const [selectedMilitaryBase, setSelectedMilitaryBase] = useState<SelectedMilitaryBase | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
+  const [showCCTVPanel, setShowCCTVPanel] = useState(false);
   const [isCountryLoading, setIsCountryLoading] = useState(false);
   const [blinkOpacity, setBlinkOpacity] = useState(0.4);
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -1126,6 +1149,17 @@ export function ThreatMap() {
         </Source>
       )}
 
+      {/* Real-time road traffic layer (Mapbox built-in, no extra API) */}
+      {layers.traffic && (
+        <Source
+          id="mapbox-traffic"
+          type="vector"
+          url="mapbox://mapbox.mapbox-traffic-v1"
+        >
+          <Layer {...trafficFlowLayer} />
+        </Source>
+      )}
+
       <CountryConflictsModal
         country={selectedCountry}
         onClose={handleCountryModalClose}
@@ -1225,6 +1259,20 @@ export function ThreatMap() {
           borderRight: corner.endsWith("r") ? "1px solid rgba(255,255,255,0.12)" : "none",
         }} />
       ))}
+
+      {/* ── CCTV Mesh panel (opens when layer toggled) ── */}
+      {(layers.cctv || showCCTVPanel) && (
+        <div style={{
+          position: "absolute",
+          bottom: 110, left: 278,
+          zIndex: 30,
+          width: 520,
+          maxHeight: "55vh",
+          overflow: "hidden auto",
+        }}>
+          <TrafficCamsPanel />
+        </div>
+      )}
 
     </div>
   );
