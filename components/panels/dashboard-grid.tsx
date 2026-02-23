@@ -24,6 +24,7 @@ import { CryptoPanel } from "./crypto-panel";
 import { RegionalNewsPanel } from "./regional-news-panel";
 import { InsightsPanel } from "./insights-panel";
 import { WebcamsPanel } from "./webcams-panel";
+import { TrafficCamsPanel } from "./traffic-cams-panel";
 import { PredictionsPanel } from "./predictions-panel";
 import { EconomicPanel } from "./economic-panel";
 import { SectorHeatmapPanel } from "./sector-heatmap-panel";
@@ -77,6 +78,7 @@ export function DashboardGrid() {
       {/* ── LIVE MEDIA ── */}
       <div style={{ gridColumn: "span 2" }}><VideoStreams /></div>
       <div style={{ gridColumn: "span 2" }}><WebcamsPanel /></div>
+      <div style={{ gridColumn: "span 2" }}><TrafficCamsPanel /></div>
 
       {/* ── AI ANALYSIS ── */}
       <InsightsPanel />

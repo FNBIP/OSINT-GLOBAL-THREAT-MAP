@@ -15,58 +15,63 @@ export interface MilitaryBaseMarker {
 
 // Worldmonitor-style map layers (matching their fullLayers list)
 export interface MapLayers {
-  conflicts:  boolean;
-  hotspots:   boolean;
-  sanctions:  boolean;
-  protests:   boolean;
-  bases:      boolean;
-  nuclear:    boolean;
-  cables:     boolean;
-  pipelines:  boolean;
-  outages:    boolean;
-  ais:        boolean;
-  flights:    boolean;
-  natural:    boolean;
-  weather:    boolean;
-  economic:   boolean;
-  waterways:  boolean;
+  conflicts:   boolean;
+  hotspots:    boolean;
+  sanctions:   boolean;
+  protests:    boolean;
+  bases:       boolean;
+  nuclear:     boolean;
+  cables:      boolean;
+  pipelines:   boolean;
+  outages:     boolean;
+  ais:         boolean;
+  flights:     boolean;
+  satellites:  boolean;
+  natural:     boolean;
+  weather:     boolean;
+  economic:    boolean;
+  waterways:   boolean;
 }
 
 export const LAYER_LABELS: Record<keyof MapLayers, string> = {
-  conflicts:  "Conflicts",
-  hotspots:   "Hotspots",
-  sanctions:  "Sanctions",
-  protests:   "Protests",
-  bases:      "Mil. Bases",
-  nuclear:    "Nuclear",
-  cables:     "Cables",
-  pipelines:  "Pipelines",
-  outages:    "Outages",
-  ais:        "AIS / Ships",
-  flights:    "Flights",
-  natural:    "Natural",
-  weather:    "Weather",
-  economic:   "Economic",
-  waterways:  "Waterways",
+  conflicts:   "Conflicts",
+  hotspots:    "Hotspots",
+  sanctions:   "Sanctions",
+  protests:    "Protests",
+  bases:       "Mil. Bases",
+  nuclear:     "Nuclear",
+  cables:      "Cables",
+  pipelines:   "Pipelines",
+  outages:     "Outages",
+  ais:         "AIS / Ships",
+  flights:     "Flights",
+  satellites:  "Satellites",
+  natural:     "Natural",
+  weather:     "Weather",
+  economic:    "Economic",
+  waterways:   "Waterways",
 };
 
 const DEFAULT_LAYERS: MapLayers = {
-  conflicts:  true,
-  hotspots:   true,
-  sanctions:  true,
-  protests:   false,
-  bases:      true,
-  nuclear:    true,
-  cables:     false,
-  pipelines:  false,
-  outages:    true,
-  ais:        false,
-  flights:    false,
-  natural:    true,
-  weather:    true,
-  economic:   true,
-  waterways:  true,
+  conflicts:   true,
+  hotspots:    true,
+  sanctions:   true,
+  protests:    false,
+  bases:       true,
+  nuclear:     true,
+  cables:      false,
+  pipelines:   false,
+  outages:     true,
+  ais:         false,
+  flights:     false,
+  satellites:  false,
+  natural:     true,
+  weather:     true,
+  economic:    true,
+  waterways:   true,
 };
+
+export type MapSkin = "eo" | "flir" | "crt";
 
 interface MapState {
   viewport: MapViewport;
@@ -81,6 +86,8 @@ interface MapState {
   militaryBases: MilitaryBaseMarker[];
   militaryBasesLoading: boolean;
   layers: MapLayers;
+  mapSkin: MapSkin;
+  showPanoptic: boolean;
 
   setViewport: (viewport: Partial<MapViewport>) => void;
   flyTo: (longitude: number, latitude: number, zoom?: number) => void;
@@ -98,6 +105,8 @@ interface MapState {
   clearEntityLocations: () => void;
   setMilitaryBases: (bases: MilitaryBaseMarker[]) => void;
   setMilitaryBasesLoading: (loading: boolean) => void;
+  setMapSkin: (skin: MapSkin) => void;
+  togglePanoptic: () => void;
 }
 
 const DEFAULT_VIEWPORT: MapViewport = {
@@ -121,6 +130,8 @@ export const useMapStore = create<MapState>((set) => ({
   militaryBases: [],
   militaryBasesLoading: false,
   layers: DEFAULT_LAYERS,
+  mapSkin: "eo",
+  showPanoptic: false,
 
   setViewport: (viewport) =>
     set((state) => ({
@@ -191,4 +202,8 @@ export const useMapStore = create<MapState>((set) => ({
   setMilitaryBases: (bases) => set({ militaryBases: bases }),
 
   setMilitaryBasesLoading: (loading) => set({ militaryBasesLoading: loading }),
+
+  setMapSkin: (skin) => set({ mapSkin: skin }),
+
+  togglePanoptic: () => set((state) => ({ showPanoptic: !state.showPanoptic })),
 }));

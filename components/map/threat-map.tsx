@@ -19,6 +19,16 @@ import { threatLevelColors } from "@/types";
 import { EventPopup } from "./event-popup";
 import { CountryConflictsModal } from "./country-conflicts-modal";
 import { SignInModal } from "@/components/auth/sign-in-modal";
+import type { AircraftState } from "@/app/api/flights/route";
+import type { SatellitePosition } from "@/app/api/satellites/route";
+import type { VesselState } from "@/app/api/ais/route";
+
+// ── Map skin styles ──────────────────────────────────────────────────────────
+const MAP_STYLES: Record<string, string> = {
+  eo:   "mapbox://styles/mapbox/dark-v11",           // EO — standard night map
+  flir: "mapbox://styles/mapbox/satellite-v9",       // FLIR — satellite imagery base
+  crt:  "mapbox://styles/mapbox/dark-v11",           // CRT — dark base + CSS overlay
+};
 
 const APP_MODE = process.env.NEXT_PUBLIC_APP_MODE || "self-hosted";
 
@@ -239,6 +249,109 @@ const militaryBaseLabelLayer: LayerProps = {
   },
 };
 
+// ── AIS / Vessel layer ───────────────────────────────────────────────────────
+const vesselLayer: LayerProps = {
+  id: "vessels-layer",
+  type: "circle",
+  paint: {
+    "circle-color": [
+      "match", ["get", "navstat"],
+      0, "#00ccff",   // underway — cyan
+      7, "#ff9900",   // fishing — orange
+      1, "#888888",   // anchored — grey
+      5, "#888888",   // moored — grey
+      "#00ccff",
+    ],
+    "circle-radius": 3,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#001133",
+    "circle-opacity": 0.9,
+  },
+};
+
+const vesselLabelLayer: LayerProps = {
+  id: "vessels-labels",
+  type: "symbol",
+  layout: {
+    "text-field": ["get", "name"],
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 8,
+    "text-offset": [0, 1.2],
+    "text-anchor": "top",
+    "text-optional": true,
+  },
+  paint: {
+    "text-color": "#00ccff",
+    "text-halo-color": "#000000",
+    "text-halo-width": 1,
+    "text-opacity": 0.7,
+  },
+};
+
+// ── Flight layer ────────────────────────────────────────────────────────────
+const flightLayer: LayerProps = {
+  id: "flights-layer",
+  type: "circle",
+  paint: {
+    "circle-color": "#00ffcc",
+    "circle-radius": 3,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#004433",
+    "circle-opacity": 0.85,
+  },
+};
+
+const flightLabelLayer: LayerProps = {
+  id: "flights-labels",
+  type: "symbol",
+  layout: {
+    "text-field": ["get", "callsign"],
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 8,
+    "text-offset": [0, 1.2],
+    "text-anchor": "top",
+    "text-optional": true,
+  },
+  paint: {
+    "text-color": "#00ffcc",
+    "text-halo-color": "#000000",
+    "text-halo-width": 1,
+    "text-opacity": 0.7,
+  },
+};
+
+// ── Satellite layer ──────────────────────────────────────────────────────────
+const satelliteLayer: LayerProps = {
+  id: "satellites-layer",
+  type: "circle",
+  paint: {
+    "circle-color": "#ff6600",
+    "circle-radius": 4,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#441100",
+    "circle-opacity": 0.9,
+  },
+};
+
+const satelliteLabelLayer: LayerProps = {
+  id: "satellites-labels",
+  type: "symbol",
+  layout: {
+    "text-field": ["get", "name"],
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 8,
+    "text-offset": [0, 1.4],
+    "text-anchor": "top",
+    "text-optional": true,
+  },
+  paint: {
+    "text-color": "#ff9955",
+    "text-halo-color": "#000000",
+    "text-halo-width": 1,
+    "text-opacity": 0.8,
+  },
+};
+
 function getSeverityValue(threatLevel: string): number {
   const values: Record<string, number> = {
     critical: 5,
@@ -278,6 +391,9 @@ export function ThreatMap() {
     militaryBases,
     setMilitaryBases,
     setMilitaryBasesLoading,
+    layers,
+    mapSkin,
+    showPanoptic,
   } = useMapStore();
   const { filteredEvents, selectedEvent, selectEvent } = useEventsStore();
   const { isAuthenticated } = useAuthStore();
@@ -288,6 +404,11 @@ export function ThreatMap() {
   const [isCountryLoading, setIsCountryLoading] = useState(false);
   const [blinkOpacity, setBlinkOpacity] = useState(0.4);
   const [showSignInModal, setShowSignInModal] = useState(false);
+
+  // ── Flight, satellite & vessel data ─────────────────────────────────────────
+  const [aircraft, setAircraft] = useState<AircraftState[]>([]);
+  const [satellites, setSatellites] = useState<SatellitePosition[]>([]);
+  const [vessels, setVessels] = useState<VesselState[]>([]);
 
   const requiresAuth = APP_MODE === "valyu";
 
@@ -311,6 +432,63 @@ export function ThreatMap() {
 
     fetchMilitaryBases();
   }, [setMilitaryBases, setMilitaryBasesLoading]);
+
+  // Fetch live flights when layer is active
+  useEffect(() => {
+    if (!layers.flights) { setAircraft([]); return; }
+    let cancelled = false;
+
+    async function fetchFlights() {
+      try {
+        const res = await fetch("/api/flights");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setAircraft(data.aircraft ?? []);
+      } catch { /* silent */ }
+    }
+
+    fetchFlights();
+    const interval = setInterval(fetchFlights, 60000); // refresh every 60s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [layers.flights]);
+
+  // Fetch satellite positions when layer is active
+  useEffect(() => {
+    if (!layers.satellites) { setSatellites([]); return; }
+    let cancelled = false;
+
+    async function fetchSatellites() {
+      try {
+        const res = await fetch("/api/satellites");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setSatellites(data.satellites ?? []);
+      } catch { /* silent */ }
+    }
+
+    fetchSatellites();
+    const interval = setInterval(fetchSatellites, 300000); // refresh every 5 min
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [layers.satellites]);
+
+  // Fetch AIS vessel positions when layer is active
+  useEffect(() => {
+    if (!layers.ais) { setVessels([]); return; }
+    let cancelled = false;
+
+    async function fetchVessels() {
+      try {
+        const res = await fetch("/api/ais");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setVessels(data.vessels ?? []);
+      } catch { /* silent */ }
+    }
+
+    fetchVessels();
+    const interval = setInterval(fetchVessels, 60000); // refresh every 60s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [layers.ais]);
 
   // Blinking effect for selected country while loading
   useEffect(() => {
@@ -396,6 +574,72 @@ export function ThreatMap() {
       })),
     }),
     [militaryBases]
+  );
+
+  const vesselsData = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: vessels
+        .filter((v) => v.longitude != null && v.latitude != null)
+        .map((v, i) => ({
+          type: "Feature" as const,
+          properties: {
+            id: v.mmsi || `v-${i}`,
+            name: v.name || v.mmsi,
+            sog: v.sog,
+            cog: v.cog,
+            navstat: v.navstat,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [v.longitude, v.latitude],
+          },
+        })),
+    }),
+    [vessels]
+  );
+
+  const flightsData = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: aircraft
+        .filter((a) => a.longitude != null && a.latitude != null)
+        .map((a, i) => ({
+          type: "Feature" as const,
+          properties: {
+            id: a.icao24 || `ac-${i}`,
+            callsign: a.callsign || a.icao24,
+            country: a.origin_country,
+            altitude: a.baro_altitude ?? 0,
+            velocity: a.velocity ?? 0,
+            track: a.true_track ?? 0,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [a.longitude!, a.latitude!],
+          },
+        })),
+    }),
+    [aircraft]
+  );
+
+  const satellitesData = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: satellites.map((s, i) => ({
+        type: "Feature" as const,
+        properties: {
+          id: `sat-${i}`,
+          name: s.name,
+          alt: s.alt,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [s.lon, s.lat],
+        },
+      })),
+    }),
+    [satellites]
   );
 
   const handleMapClick = useCallback(
@@ -521,13 +765,56 @@ export function ThreatMap() {
     );
   }
 
+  // FLIR CSS filter
+  const flirFilter = mapSkin === "flir"
+    ? "sepia(1) saturate(3) hue-rotate(90deg) brightness(0.7) contrast(1.4)"
+    : undefined;
+
   return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    {/* FLIR color grading overlay */}
+    {mapSkin === "flir" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        background: "transparent",
+        mixBlendMode: "multiply",
+        filter: "none",
+      }} />
+    )}
+    {/* CRT scanlines overlay */}
+    {mapSkin === "crt" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        backgroundImage: "repeating-linear-gradient(0deg, rgba(0,255,80,0.04) 0px, rgba(0,255,80,0.04) 1px, transparent 1px, transparent 3px)",
+        mixBlendMode: "screen",
+      }} />
+    )}
+    {/* CRT vignette */}
+    {mapSkin === "crt" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 6, pointerEvents: "none",
+        background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%)",
+      }} />
+    )}
+    {/* FLIR thermal tint */}
+    {mapSkin === "flir" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        background: "rgba(0,30,0,0.35)",
+        mixBlendMode: "multiply",
+      }} />
+    )}
+
+    {/* Panoptic detection overlay */}
+    {showPanoptic && <PanopticOverlay />}
+
     <Map
       ref={mapRef}
       {...viewport}
       onMove={(evt) => setViewport(evt.viewState)}
-      mapStyle="mapbox://styles/mapbox/dark-v11"
+      mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
       mapboxAccessToken={MAPBOX_TOKEN}
+      style={mapSkin === "flir" ? { filter: flirFilter } : undefined}
       interactiveLayerIds={
         showClusters
           ? ["clusters", "unclustered-point", "entity-locations", "military-bases-circle"]
@@ -781,6 +1068,30 @@ export function ThreatMap() {
         </Popup>
       )}
 
+      {/* AIS Vessel layer */}
+      {layers.ais && vessels.length > 0 && (
+        <Source id="vessels" type="geojson" data={vesselsData}>
+          <Layer {...vesselLayer} />
+          <Layer {...vesselLabelLayer} />
+        </Source>
+      )}
+
+      {/* Flights layer */}
+      {layers.flights && aircraft.length > 0 && (
+        <Source id="flights" type="geojson" data={flightsData}>
+          <Layer {...flightLayer} />
+          <Layer {...flightLabelLayer} />
+        </Source>
+      )}
+
+      {/* Satellites layer */}
+      {layers.satellites && satellites.length > 0 && (
+        <Source id="satellites" type="geojson" data={satellitesData}>
+          <Layer {...satelliteLayer} />
+          <Layer {...satelliteLabelLayer} />
+        </Source>
+      )}
+
       <CountryConflictsModal
         country={selectedCountry}
         onClose={handleCountryModalClose}
@@ -789,5 +1100,99 @@ export function ThreatMap() {
 
       <SignInModal open={showSignInModal} onOpenChange={setShowSignInModal} />
     </Map>
+    </div>
+  );
+}
+
+// ── Panoptic Detection Overlay ────────────────────────────────────────────────
+function PanopticOverlay() {
+  const [scanY, setScanY] = useState(0);
+  const [detections, setDetections] = useState<{ x: number; y: number; w: number; h: number; label: string }[]>([]);
+
+  // Animated scan line
+  useEffect(() => {
+    const id = setInterval(() => {
+      setScanY((y) => (y + 0.4) % 100);
+    }, 16);
+    return () => clearInterval(id);
+  }, []);
+
+  // Randomize detection boxes periodically
+  useEffect(() => {
+    function randomDetections() {
+      const LABELS = ["VEHICLE", "AIRCRAFT", "VESSEL", "STRUCTURE", "PERSON", "UNKNOWN"];
+      const count = 4 + Math.floor(Math.random() * 5);
+      return Array.from({ length: count }, () => ({
+        x: 5 + Math.random() * 80,
+        y: 5 + Math.random() * 80,
+        w: 4 + Math.random() * 12,
+        h: 3 + Math.random() * 8,
+        label: LABELS[Math.floor(Math.random() * LABELS.length)],
+      }));
+    }
+    setDetections(randomDetections());
+    const id = setInterval(() => setDetections(randomDetections()), 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div style={{
+      position: "absolute", inset: 0, zIndex: 8, pointerEvents: "none",
+      overflow: "hidden",
+    }}>
+      {/* Grid overlay */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: `
+          linear-gradient(rgba(0,255,80,0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,255,80,0.06) 1px, transparent 1px)
+        `,
+        backgroundSize: "60px 60px",
+      }} />
+
+      {/* Scan line */}
+      <div style={{
+        position: "absolute", left: 0, right: 0,
+        top: `${scanY}%`,
+        height: "2px",
+        background: "linear-gradient(90deg, transparent, rgba(0,255,80,0.6), rgba(0,255,80,0.8), rgba(0,255,80,0.6), transparent)",
+        boxShadow: "0 0 8px rgba(0,255,80,0.4)",
+      }} />
+
+      {/* Detection boxes */}
+      {detections.map((d, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: `${d.x}%`, top: `${d.y}%`,
+          width: `${d.w}%`, height: `${d.h}%`,
+          border: "1px solid rgba(0,255,80,0.7)",
+          boxShadow: "0 0 6px rgba(0,255,80,0.3) inset, 0 0 4px rgba(0,255,80,0.3)",
+        }}>
+          {/* Corner ticks */}
+          <div style={{ position:"absolute", top:-1, left:-1, width:6, height:6, borderTop:"2px solid #00ff50", borderLeft:"2px solid #00ff50" }} />
+          <div style={{ position:"absolute", top:-1, right:-1, width:6, height:6, borderTop:"2px solid #00ff50", borderRight:"2px solid #00ff50" }} />
+          <div style={{ position:"absolute", bottom:-1, left:-1, width:6, height:6, borderBottom:"2px solid #00ff50", borderLeft:"2px solid #00ff50" }} />
+          <div style={{ position:"absolute", bottom:-1, right:-1, width:6, height:6, borderBottom:"2px solid #00ff50", borderRight:"2px solid #00ff50" }} />
+          <div style={{
+            position: "absolute", top: -14, left: 0,
+            fontSize: 7, fontFamily: "monospace", fontWeight: 700,
+            color: "#00ff50", letterSpacing: "0.5px",
+            whiteSpace: "nowrap",
+          }}>
+            {d.label} [{(80 + Math.random() * 19).toFixed(1)}%]
+          </div>
+        </div>
+      ))}
+
+      {/* HUD corners */}
+      <div style={{ position:"absolute", top:8, left:8, fontSize:9, fontFamily:"monospace", color:"rgba(0,255,80,0.6)", letterSpacing:"0.8px" }}>
+        PANOPTIC SCAN ACTIVE<br/>
+        <span style={{ fontSize:7, opacity:0.5 }}>RES:1080p | MODE:WIDE | LAT:{scanY.toFixed(1)}°</span>
+      </div>
+      <div style={{ position:"absolute", top:8, right:8, fontSize:9, fontFamily:"monospace", color:"rgba(0,255,80,0.6)", letterSpacing:"0.8px", textAlign:"right" }}>
+        {new Date().toISOString().slice(11,19)} UTC<br/>
+        <span style={{ fontSize:7, opacity:0.5 }}>TARGETS: {detections.length} DETECTED</span>
+      </div>
+    </div>
   );
 }
