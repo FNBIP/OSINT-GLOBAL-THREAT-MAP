@@ -3,37 +3,36 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 /**
- * AIS Vessel Tracking — AISHub API
+ * AIS Vessel Tracking — aisstream.io
  *
- * Requires an AISHub username (free with data contribution registration).
- * Set AISHUB_USERNAME in .env.local
+ * Free global AIS data via WebSocket. No hardware required.
+ * Sign up at https://aisstream.io (GitHub login) to get a free API key.
+ * Set AISSTREAM_API_KEY in .env
  *
- * API docs: https://www.aishub.net/api
- * Endpoint: https://data.aishub.net/ws.php
- *   - format=1 (human-readable)
- *   - output=json
- *   - compress=0
- *   - interval=5 (last 5 minutes)
+ * Strategy: Open a WebSocket from the server, collect messages for up to
+ * COLLECT_MS milliseconds, then close and return as a normal JSON REST
+ * response. The frontend stays the same (no WebSocket changes needed).
  *
- * Without credentials, returns empty array with instructions.
+ * Rate: aisstream.io free tier delivers ~100–500 msg/sec globally.
+ * We cap at MAX_VESSELS after collecting for COLLECT_MS.
  */
 
-const AISHUB_USERNAME = process.env.AISHUB_USERNAME ?? "";
-const AISHUB_BASE = "https://data.aishub.net/ws.php";
+const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY ?? "";
+const COLLECT_MS  = 4000;   // collect for 4 seconds
+const MAX_VESSELS = 2000;   // cap response size
 
 export interface VesselState {
   mmsi: string;
   name: string;
   latitude: number;
   longitude: number;
-  sog: number;    // speed over ground (knots)
-  cog: number;    // course over ground (degrees)
+  sog: number;     // speed over ground (knots)
+  cog: number;     // course over ground (degrees)
   heading: number;
   navstat: number; // navigational status (0=underway, 1=anchored, 5=moored, etc.)
   time: string;
 }
 
-// Nav status descriptions
 export const NAV_STATUS: Record<number, string> = {
   0: "Underway",
   1: "Anchored",
@@ -47,70 +46,52 @@ export const NAV_STATUS: Record<number, string> = {
   15: "Unknown",
 };
 
+// ── aisstream message types we care about ─────────────────────────────────────
+interface AisstreamPositionReport {
+  Latitude:          number;
+  Longitude:         number;
+  Sog:               number;
+  Cog:               number;
+  TrueHeading:       number;
+  NavigationalStatus: number;
+}
+
+interface AisstreamMetadata {
+  MMSI:      number;
+  ShipName:  string;
+  TimeUtc:   string;
+}
+
+interface AisstreamMessage {
+  MessageType: string;
+  Message?: {
+    PositionReport?: AisstreamPositionReport;
+    StandardClassBPositionReport?: AisstreamPositionReport;
+    ExtendedClassBPositionReport?: AisstreamPositionReport;
+  };
+  MetaData?: AisstreamMetadata;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const latmin = searchParams.get("latmin") ?? "-90";
-  const latmax = searchParams.get("latmax") ?? "90";
-  const lonmin = searchParams.get("lonmin") ?? "-180";
-  const lonmax = searchParams.get("lonmax") ?? "180";
 
-  // If no AISHub credentials, return empty with a helpful message
-  if (!AISHUB_USERNAME) {
+  // Optional bounding box (defaults to global)
+  const latmin = parseFloat(searchParams.get("latmin") ?? "-90");
+  const latmax = parseFloat(searchParams.get("latmax") ?? "90");
+  const lonmin = parseFloat(searchParams.get("lonmin") ?? "-180");
+  const lonmax = parseFloat(searchParams.get("lonmax") ?? "180");
+
+  if (!AISSTREAM_API_KEY) {
     return NextResponse.json({
       vessels: [],
       total: 0,
-      error: "AISHUB_USERNAME not set. Register at https://www.aishub.net to get a username.",
+      error: "AISSTREAM_API_KEY not set. Get a free key at https://aisstream.io",
       updatedAt: new Date().toISOString(),
     });
   }
 
   try {
-    const url = new URL(AISHUB_BASE);
-    url.searchParams.set("username", AISHUB_USERNAME);
-    url.searchParams.set("format", "1");      // human-readable fields
-    url.searchParams.set("output", "json");
-    url.searchParams.set("compress", "0");
-    url.searchParams.set("latmin", latmin);
-    url.searchParams.set("latmax", latmax);
-    url.searchParams.set("lonmin", lonmin);
-    url.searchParams.set("lonmax", lonmax);
-
-    const res = await fetch(url.toString(), {
-      headers: { "User-Agent": "OSINT-GlobalThreatMap/1.0" },
-      // AISHub requires no more than 1 req/min — cache for 60s
-      next: { revalidate: 60 },
-    });
-
-    if (!res.ok) {
-      throw new Error(`AISHub returned ${res.status}`);
-    }
-
-    const raw = await res.json();
-
-    // AISHub JSON format: [ { "ERROR": false, "USERNAME": "...", "FORMAT": 1 }, [ {...vessel}, ... ] ]
-    // Index 0 is metadata, index 1 is the vessel array
-    let vesselArray: Record<string, unknown>[] = [];
-    if (Array.isArray(raw) && raw.length >= 2 && Array.isArray(raw[1])) {
-      vesselArray = raw[1];
-    } else if (Array.isArray(raw)) {
-      vesselArray = raw.filter((v) => typeof v === "object" && v !== null && "MMSI" in v);
-    }
-
-    const vessels: VesselState[] = vesselArray
-      .filter((v) => v.LONGITUDE != null && v.LATITUDE != null)
-      .map((v) => ({
-        mmsi: String(v.MMSI ?? ""),
-        name: String(v.NAME ?? "").trim() || String(v.MMSI ?? ""),
-        latitude: Number(v.LATITUDE),
-        longitude: Number(v.LONGITUDE),
-        sog: Number(v.SOG ?? 0),
-        cog: Number(v.COG ?? 0),
-        heading: Number(v.HEADING ?? 0),
-        navstat: Number(v.NAVSTAT ?? 15),
-        time: String(v.TIME ?? ""),
-      }))
-      .slice(0, 3000); // cap at 3000 vessels
-
+    const vessels = await collectVessels({ latmin, latmax, lonmin, lonmax });
     return NextResponse.json({
       vessels,
       total: vessels.length,
@@ -123,4 +104,114 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// ── WebSocket collector ────────────────────────────────────────────────────────
+function collectVessels(bbox: {
+  latmin: number; latmax: number; lonmin: number; lonmax: number;
+}): Promise<VesselState[]> {
+  return new Promise((resolve, reject) => {
+    // Node.js 18+ has WebSocket support natively in some environments,
+    // but Next.js edge/Node may need the ws package. We use the global
+    // WebSocket if available, otherwise dynamic import ws.
+    const seen = new Map<string, VesselState>();
+    let done = false;
+    let ws: WebSocket | null = null;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { ws?.close(); } catch { /* ignore */ }
+      resolve(Array.from(seen.values()).slice(0, MAX_VESSELS));
+    };
+
+    // Timeout: resolve after COLLECT_MS regardless
+    const timer = setTimeout(finish, COLLECT_MS);
+
+    try {
+      // Use the global WebSocket (available in Node 22+ / Next.js 15+)
+      // or fall back to the ws package if needed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const WS: typeof WebSocket = (globalThis as any).WebSocket;
+      if (!WS) {
+        clearTimeout(timer);
+        reject(new Error("WebSocket not available in this runtime"));
+        return;
+      }
+
+      ws = new WS("wss://stream.aisstream.io/v0/stream");
+
+      ws.onopen = () => {
+        ws!.send(JSON.stringify({
+          APIKey: AISSTREAM_API_KEY,
+          BoundingBoxes: [
+            [[bbox.latmin, bbox.lonmin], [bbox.latmax, bbox.lonmax]],
+          ],
+          FilterMessageTypes: [
+            "PositionReport",
+            "StandardClassBPositionReport",
+            "ExtendedClassBPositionReport",
+          ],
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        if (done) return;
+        try {
+          const msg: AisstreamMessage = JSON.parse(
+            typeof event.data === "string" ? event.data : String(event.data)
+          );
+
+          const pos =
+            msg.Message?.PositionReport ??
+            msg.Message?.StandardClassBPositionReport ??
+            msg.Message?.ExtendedClassBPositionReport;
+
+          const meta = msg.MetaData;
+          if (!pos || !meta) return;
+
+          const { Latitude: lat, Longitude: lon } = pos;
+          if (lat == null || lon == null) return;
+          if (lat === 0 && lon === 0) return; // default/invalid position
+
+          const mmsi = String(meta.MMSI ?? "");
+          if (!mmsi) return;
+
+          seen.set(mmsi, {
+            mmsi,
+            name: (meta.ShipName ?? "").trim() || mmsi,
+            latitude:  lat,
+            longitude: lon,
+            sog:     pos.Sog ?? 0,
+            cog:     pos.Cog ?? 0,
+            heading: pos.TrueHeading ?? 0,
+            navstat: pos.NavigationalStatus ?? 15,
+            time:    meta.TimeUtc ?? new Date().toISOString(),
+          });
+
+          // Once we have enough, stop collecting
+          if (seen.size >= MAX_VESSELS) {
+            clearTimeout(timer);
+            finish();
+          }
+        } catch { /* ignore parse errors */ }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timer);
+        if (!done) {
+          done = true;
+          reject(new Error(`aisstream WebSocket error: ${String(err)}`));
+        }
+      };
+
+      ws.onclose = () => {
+        clearTimeout(timer);
+        finish();
+      };
+    } catch (err) {
+      clearTimeout(timer);
+      reject(err);
+    }
+  });
 }
