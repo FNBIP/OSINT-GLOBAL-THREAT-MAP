@@ -428,6 +428,33 @@ interface SelectedMilitaryBase {
   type: "usa" | "nato";
 }
 
+interface SelectedVessel {
+  longitude: number;
+  latitude: number;
+  name: string;
+  mmsi: string;
+  sog: number;
+  cog: number;
+  navstat: number;
+}
+
+interface SelectedFlight {
+  longitude: number;
+  latitude: number;
+  callsign: string;
+  icao24: string;
+  country: string;
+  altitude: number;
+  velocity: number;
+}
+
+interface SelectedSatellite {
+  longitude: number;
+  latitude: number;
+  name: string;
+  alt: number;
+}
+
 export function ThreatMap() {
   const mapRef = useRef<MapRef>(null);
   const {
@@ -448,6 +475,9 @@ export function ThreatMap() {
   const { isAuthenticated } = useAuthStore();
   const [selectedEntityLocation, setSelectedEntityLocation] = useState<SelectedEntityLocation | null>(null);
   const [selectedMilitaryBase, setSelectedMilitaryBase] = useState<SelectedMilitaryBase | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<SelectedVessel | null>(null);
+  const [selectedFlight, setSelectedFlight] = useState<SelectedFlight | null>(null);
+  const [selectedSatellite, setSelectedSatellite] = useState<SelectedSatellite | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [showCCTVPanel, setShowCCTVPanel] = useState(false);
@@ -749,6 +779,45 @@ export function ThreatMap() {
           selectEvent(null);
           setSelectedEntityLocation(null);
           return;
+        } else if (layerId === "vessels-layer") {
+          const coords = (feature.geometry as GeoJSON.Point).coordinates;
+          setSelectedVessel({
+            longitude: coords[0],
+            latitude: coords[1],
+            name: feature.properties?.name || "Unknown Vessel",
+            mmsi: feature.properties?.id || "—",
+            sog: feature.properties?.sog ?? 0,
+            cog: feature.properties?.cog ?? 0,
+            navstat: feature.properties?.navstat ?? -1,
+          });
+          selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
+          setSelectedFlight(null); setSelectedSatellite(null);
+          return;
+        } else if (layerId === "flights-layer" || layerId === "flights-layer-nvg") {
+          const coords = (feature.geometry as GeoJSON.Point).coordinates;
+          setSelectedFlight({
+            longitude: coords[0],
+            latitude: coords[1],
+            callsign: feature.properties?.callsign || "Unknown",
+            icao24: feature.properties?.id || "—",
+            country: feature.properties?.country || "Unknown",
+            altitude: feature.properties?.altitude ?? 0,
+            velocity: feature.properties?.velocity ?? 0,
+          });
+          selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
+          setSelectedVessel(null); setSelectedSatellite(null);
+          return;
+        } else if (layerId === "satellites-layer") {
+          const coords = (feature.geometry as GeoJSON.Point).coordinates;
+          setSelectedSatellite({
+            longitude: coords[0],
+            latitude: coords[1],
+            name: feature.properties?.name || "Unknown Satellite",
+            alt: feature.properties?.alt ?? 0,
+          });
+          selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
+          setSelectedVessel(null); setSelectedFlight(null);
+          return;
         }
       }
 
@@ -756,6 +825,9 @@ export function ThreatMap() {
       selectEvent(null);
       setSelectedEntityLocation(null);
       setSelectedMilitaryBase(null);
+      setSelectedVessel(null);
+      setSelectedFlight(null);
+      setSelectedSatellite(null);
 
       const { lng, lat } = event.lngLat;
 
@@ -868,11 +940,16 @@ export function ThreatMap() {
             mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
             mapboxAccessToken={MAPBOX_TOKEN}
             style={{ width: "100%", height: "100%" }}
-            interactiveLayerIds={
-              showClusters
-                ? ["clusters", "unclustered-point", "entity-locations", "military-bases-circle"]
-                : ["unclustered-point", "entity-locations", "military-bases-circle"]
-            }
+            interactiveLayerIds={[
+              ...(showClusters ? ["clusters"] : []),
+              "unclustered-point",
+              "entity-locations",
+              "military-bases-circle",
+              "vessels-layer",
+              "flights-layer",
+              "flights-layer-nvg",
+              "satellites-layer",
+            ]}
             onClick={handleMapClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -1114,6 +1191,103 @@ export function ThreatMap() {
                 </svg>
                 <span>{selectedMilitaryBase.country}</span>
               </div>
+            </div>
+          </div>
+        </Popup>
+      )}
+
+      {/* ── Vessel popup ── */}
+      {selectedVessel && (
+        <Popup
+          longitude={selectedVessel.longitude}
+          latitude={selectedVessel.latitude}
+          anchor="bottom"
+          onClose={() => setSelectedVessel(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="threat-popup"
+        >
+          <div className="min-w-[200px] p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
+                <span className="text-cyan-400 text-sm">⚓</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{selectedVessel.name}</h3>
+                <span className="text-xs text-cyan-400">MMSI: {selectedVessel.mmsi}</span>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between"><span>Speed</span><span className="text-foreground">{selectedVessel.sog.toFixed(1)} kn</span></div>
+              <div className="flex justify-between"><span>Course</span><span className="text-foreground">{selectedVessel.cog.toFixed(1)}°</span></div>
+              <div className="flex justify-between"><span>Nav Status</span><span className="text-foreground">{
+                selectedVessel.navstat === 0 ? "Underway" :
+                selectedVessel.navstat === 1 ? "Anchored" :
+                selectedVessel.navstat === 5 ? "Moored" :
+                selectedVessel.navstat === 7 ? "Fishing" :
+                `Code ${selectedVessel.navstat}`
+              }</span></div>
+              <div className="flex justify-between"><span>Position</span><span className="text-foreground">{selectedVessel.latitude.toFixed(4)}°, {selectedVessel.longitude.toFixed(4)}°</span></div>
+            </div>
+          </div>
+        </Popup>
+      )}
+
+      {/* ── Flight popup ── */}
+      {selectedFlight && (
+        <Popup
+          longitude={selectedFlight.longitude}
+          latitude={selectedFlight.latitude}
+          anchor="bottom"
+          onClose={() => setSelectedFlight(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="threat-popup"
+        >
+          <div className="min-w-[200px] p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
+                <span className="text-emerald-400 text-sm">✈</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{selectedFlight.callsign}</h3>
+                <span className="text-xs text-emerald-400">{selectedFlight.country}</span>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between"><span>ICAO24</span><span className="text-foreground">{selectedFlight.icao24}</span></div>
+              <div className="flex justify-between"><span>Altitude</span><span className="text-foreground">{selectedFlight.altitude.toLocaleString()} m</span></div>
+              <div className="flex justify-between"><span>Velocity</span><span className="text-foreground">{selectedFlight.velocity.toFixed(0)} m/s</span></div>
+              <div className="flex justify-between"><span>Position</span><span className="text-foreground">{selectedFlight.latitude.toFixed(4)}°, {selectedFlight.longitude.toFixed(4)}°</span></div>
+            </div>
+          </div>
+        </Popup>
+      )}
+
+      {/* ── Satellite popup ── */}
+      {selectedSatellite && (
+        <Popup
+          longitude={selectedSatellite.longitude}
+          latitude={selectedSatellite.latitude}
+          anchor="bottom"
+          onClose={() => setSelectedSatellite(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="threat-popup"
+        >
+          <div className="min-w-[200px] p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/20">
+                <span className="text-orange-400 text-sm">◉</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{selectedSatellite.name}</h3>
+                <span className="text-xs text-orange-400">Satellite</span>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between"><span>Altitude</span><span className="text-foreground">{selectedSatellite.alt.toFixed(0)} km</span></div>
+              <div className="flex justify-between"><span>Position</span><span className="text-foreground">{selectedSatellite.latitude.toFixed(4)}°, {selectedSatellite.longitude.toFixed(4)}°</span></div>
             </div>
           </div>
         </Popup>
