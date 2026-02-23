@@ -71,7 +71,7 @@ const DEFAULT_LAYERS: MapLayers = {
   waterways:   true,
 };
 
-export type MapSkin = "eo" | "flir" | "crt";
+export type MapSkin = "eo" | "flir" | "crt" | "nvg" | "anime" | "noir" | "snow" | "ai";
 
 interface MapState {
   viewport: MapViewport;

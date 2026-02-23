@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Map Layer Toggles + Skin Selector + Panoptic Toggle
+ * Map Layer Toggles — pill strip (worldmonitor style)
  *
- * Top row: EO | FLIR | CRT skin selector + PANOPTIC button
- * Bottom row: Layer pill strip (worldmonitor style)
+ * The skin selector, PANOPTIC toggle, and city bar have been moved
+ * to the WorldviewHUD component for the WORLDVIEW-style classified UI.
  */
 
 import type { CSSProperties } from "react";
 import { useMapStore, LAYER_LABELS } from "@/stores/map-store";
-import type { MapLayers, MapSkin } from "@/stores/map-store";
+import type { MapLayers } from "@/stores/map-store";
 
 // Same order as worldmonitor's fullLayers array
 const LAYER_ORDER: (keyof MapLayers)[] = [
@@ -31,12 +31,6 @@ const LAYER_ORDER: (keyof MapLayers)[] = [
   "waterways",
 ];
 
-const SKIN_OPTIONS: { id: MapSkin; label: string; color: string }[] = [
-  { id: "eo",   label: "EO",   color: "#00aaff" },
-  { id: "flir", label: "FLIR", color: "#00ff88" },
-  { id: "crt",  label: "CRT",  color: "#00ff50" },
-];
-
 const pillBase: CSSProperties = {
   flexShrink: 0,
   fontSize: "10px",
@@ -52,65 +46,20 @@ const pillBase: CSSProperties = {
 };
 
 export function MapControls() {
-  const layers       = useMapStore((s) => s.layers);
-  const toggleLayer  = useMapStore((s) => s.toggleLayer);
-  const mapSkin      = useMapStore((s) => s.mapSkin);
-  const setMapSkin   = useMapStore((s) => s.setMapSkin);
-  const showPanoptic = useMapStore((s) => s.showPanoptic);
-  const togglePanoptic = useMapStore((s) => s.togglePanoptic);
+  const layers      = useMapStore((s) => s.layers);
+  const toggleLayer = useMapStore((s) => s.toggleLayer);
 
   return (
     <div style={{
       position: "absolute",
       bottom: "28px",
       left: "10px",
-      right: "10px",
+      right: "270px",   // leave room for the right-side WorldviewHUD panel
       zIndex: 10,
       display: "flex",
       flexDirection: "column",
       gap: "5px",
     }}>
-      {/* ── Skin selector + Panoptic ── */}
-      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-        <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.5px", marginRight: 2 }}>SENSOR</span>
-        {SKIN_OPTIONS.map((s) => {
-          const active = mapSkin === s.id;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setMapSkin(s.id)}
-              style={{
-                ...pillBase,
-                background: active ? `${s.color}22` : "rgba(10,10,10,0.75)",
-                color: active ? s.color : "rgba(255,255,255,0.4)",
-                border: `1px solid ${active ? `${s.color}66` : "rgba(255,255,255,0.1)"}`,
-                fontFamily: s.id === "crt" ? "monospace" : undefined,
-              }}
-            >
-              {s.label}
-            </button>
-          );
-        })}
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
-
-        {/* Panoptic toggle */}
-        <button
-          onClick={togglePanoptic}
-          title="Panoptic detection overlay"
-          style={{
-            ...pillBase,
-            background: showPanoptic ? "rgba(0,255,80,0.15)" : "rgba(10,10,10,0.75)",
-            color: showPanoptic ? "#00ff50" : "rgba(255,255,255,0.4)",
-            border: `1px solid ${showPanoptic ? "rgba(0,255,80,0.5)" : "rgba(255,255,255,0.1)"}`,
-            fontFamily: "monospace",
-          }}
-        >
-          {showPanoptic ? "◉ PANOPTIC" : "◎ PANOPTIC"}
-        </button>
-      </div>
-
       {/* ── Layer pill strip ── */}
       <div style={{
         display: "flex",
@@ -120,6 +69,9 @@ export function MapControls() {
         scrollbarWidth: "none",
         paddingBottom: "2px",
       }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.5px", marginRight: 2, flexShrink: 0 }}>
+          LAYERS
+        </span>
         {LAYER_ORDER.map((layer) => {
           const active = layers[layer];
           return (

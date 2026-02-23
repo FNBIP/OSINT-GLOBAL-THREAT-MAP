@@ -19,15 +19,21 @@ import { threatLevelColors } from "@/types";
 import { EventPopup } from "./event-popup";
 import { CountryConflictsModal } from "./country-conflicts-modal";
 import { SignInModal } from "@/components/auth/sign-in-modal";
+import { WorldviewHUD } from "./worldview-hud";
 import type { AircraftState } from "@/app/api/flights/route";
 import type { SatellitePosition } from "@/app/api/satellites/route";
 import type { VesselState } from "@/app/api/ais/route";
 
 // ── Map skin styles ──────────────────────────────────────────────────────────
 const MAP_STYLES: Record<string, string> = {
-  eo:   "mapbox://styles/mapbox/dark-v11",           // EO — standard night map
-  flir: "mapbox://styles/mapbox/satellite-v9",       // FLIR — satellite imagery base
-  crt:  "mapbox://styles/mapbox/dark-v11",           // CRT — dark base + CSS overlay
+  eo:    "mapbox://styles/mapbox/dark-v11",           // EO — standard night map
+  flir:  "mapbox://styles/mapbox/satellite-v9",       // FLIR — satellite imagery base
+  crt:   "mapbox://styles/mapbox/dark-v11",           // CRT — dark base + CSS scanlines
+  nvg:   "mapbox://styles/mapbox/dark-v11",           // NVG — night-vision green tint
+  anime: "mapbox://styles/mapbox/streets-v12",        // Anime — colorful streets
+  noir:  "mapbox://styles/mapbox/dark-v11",           // Noir — desaturated dark
+  snow:  "mapbox://styles/mapbox/light-v11",          // Snow — bright/white
+  ai:    "mapbox://styles/mapbox/satellite-streets-v12", // AI — satellite+streets
 };
 
 const APP_MODE = process.env.NEXT_PUBLIC_APP_MODE || "self-hosted";
@@ -765,37 +771,50 @@ export function ThreatMap() {
     );
   }
 
-  // FLIR CSS filter
-  const flirFilter = mapSkin === "flir"
-    ? "sepia(1) saturate(3) hue-rotate(90deg) brightness(0.7) contrast(1.4)"
-    : undefined;
+  // CSS filter for each skin applied to the Map element
+  const skinFilter: Record<string, string | undefined> = {
+    flir:  "sepia(1) saturate(3) hue-rotate(90deg) brightness(0.7) contrast(1.4)",
+    nvg:   "saturate(0) brightness(1.2) contrast(1.3)",
+    noir:  "saturate(0) brightness(0.85) contrast(1.2)",
+    snow:  "saturate(0.2) brightness(1.3) contrast(0.9)",
+    anime: undefined,
+    eo:    undefined,
+    crt:   undefined,
+    ai:    undefined,
+  };
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-    {/* FLIR color grading overlay */}
-    {mapSkin === "flir" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        background: "transparent",
-        mixBlendMode: "multiply",
-        filter: "none",
-      }} />
-    )}
-    {/* CRT scanlines overlay */}
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#000" }}>
+
+    {/* ── Skin CSS overlays ─────────────────────────────────────────────── */}
+
+    {/* CRT scanlines */}
     {mapSkin === "crt" && (
       <div style={{
         position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        backgroundImage: "repeating-linear-gradient(0deg, rgba(0,255,80,0.04) 0px, rgba(0,255,80,0.04) 1px, transparent 1px, transparent 3px)",
+        backgroundImage: "repeating-linear-gradient(0deg, rgba(0,255,80,0.05) 0px, rgba(0,255,80,0.05) 1px, transparent 1px, transparent 3px)",
         mixBlendMode: "screen",
       }} />
     )}
-    {/* CRT vignette */}
-    {mapSkin === "crt" && (
+
+    {/* NVG green tint */}
+    {mapSkin === "nvg" && (
       <div style={{
-        position: "absolute", inset: 0, zIndex: 6, pointerEvents: "none",
-        background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%)",
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        background: "rgba(30,80,10,0.45)",
+        mixBlendMode: "screen",
       }} />
     )}
+    {/* NVG grain noise */}
+    {mapSkin === "nvg" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        opacity: 0.12,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+        backgroundSize: "200px 200px",
+      }} />
+    )}
+
     {/* FLIR thermal tint */}
     {mapSkin === "flir" && (
       <div style={{
@@ -805,8 +824,31 @@ export function ThreatMap() {
       }} />
     )}
 
+    {/* Noir film grain */}
+    {mapSkin === "noir" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        background: "rgba(10,5,0,0.3)",
+      }} />
+    )}
+
+    {/* Snow white haze */}
+    {mapSkin === "snow" && (
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+        background: "rgba(220,240,255,0.12)",
+      }} />
+    )}
+
     {/* Panoptic detection overlay */}
     {showPanoptic && <PanopticOverlay />}
+
+    {/* WorldviewHUD — classified intel UI */}
+    <WorldviewHUD
+      mapLat={viewport.latitude}
+      mapLon={viewport.longitude}
+      mapZoom={viewport.zoom}
+    />
 
     <Map
       ref={mapRef}
@@ -814,7 +856,7 @@ export function ThreatMap() {
       onMove={(evt) => setViewport(evt.viewState)}
       mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
       mapboxAccessToken={MAPBOX_TOKEN}
-      style={mapSkin === "flir" ? { filter: flirFilter } : undefined}
+      style={skinFilter[mapSkin] ? { filter: skinFilter[mapSkin] } : undefined}
       interactiveLayerIds={
         showClusters
           ? ["clusters", "unclustered-point", "entity-locations", "military-bases-circle"]
