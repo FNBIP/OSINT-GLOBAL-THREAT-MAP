@@ -118,7 +118,7 @@ export function WorldviewHUD({
     flyTo,
   } = useMapStore();
 
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [bloom, setBloom] = useState(100);
   const [sharpen, setSharpen] = useState(56);
   const [panopticOpacity, setPanopticOpacity] = useState(40);
@@ -134,6 +134,7 @@ export function WorldviewHUD({
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -154,7 +155,7 @@ export function WorldviewHUD({
   const gsd = (altKm * 0.3).toFixed(2);
   const niirs = Math.max(0, 9 - mapZoom * 0.3).toFixed(1);
   const sunEl = (-36.4 + mapLat * 0.1).toFixed(1);
-  const orbCount = 47439 + Math.floor((now.getTime() / 90000) % 1000);
+  const orbCount = 47439 + Math.floor(((now?.getTime() ?? 0) / 90000) % 1000);
 
   const skinColor: Record<MapSkin, string> = {
     eo:"#00aaff", flir:"#00ff88", crt:"#00ffcc", nvg:"#39ff14",
@@ -251,7 +252,7 @@ export function WorldviewHUD({
           <div style={{ width:6, height:6, borderRadius:"50%", background:"#ff3333", animation:"wv-blink 1s step-end infinite" }} />
           <span style={{ color:"#ff3333", fontSize:8, fontWeight:700 }}>REC</span>
           <span style={{ color:"rgba(255,255,255,0.55)", fontSize:8 }}>
-            {now.toISOString().slice(0,10).replace(/-/g,"/")} {now.toTimeString().slice(0,8)}Z
+            {now ? `${now.toISOString().slice(0,10).replace(/-/g,"/")} ${now.toTimeString().slice(0,8)}Z` : "—"}
           </span>
         </div>
         <div style={{ color:"rgba(255,255,255,0.35)", fontSize:8 }}>ORB: {orbCount} PASS: DESC-179</div>
@@ -500,10 +501,12 @@ export function WorldviewHUD({
 
       {/* ── LOCATIONS bar (above city bar) ── */}
       <div style={{
-        position:"absolute", bottom:54, left:"50%", transform:"translateX(-50%)",
+        position:"absolute", bottom:54,
+        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"} - ${rightPanelOpen ? "250px" : "0px"}) / 2)`,
+        transform:"translateX(-50%)",
         zIndex:20, ...panelBg, borderRadius:4,
         display:"flex", alignItems:"center", overflow:"hidden",
-        paddingLeft: leftPanelOpen ? "20px" : "0",
+        transition:"left 0.3s ease",
       }}>
         {CITIES.map((city) => {
           const isActive = activeCity === city.name;
@@ -523,11 +526,13 @@ export function WorldviewHUD({
 
       {/* ── Bottom skin selector bar ── */}
       <div style={{
-        position:"absolute", bottom:6, left:"50%", transform:"translateX(-50%)",
+        position:"absolute", bottom:6,
+        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"} - ${rightPanelOpen ? "250px" : "0px"}) / 2)`,
+        transform:"translateX(-50%)",
         zIndex:20,
         display:"flex", gap:2,
         ...panelBg, borderRadius:6, padding:"4px 6px",
-        paddingLeft: leftPanelOpen ? "20px" : "4px",
+        transition:"left 0.3s ease",
       }}>
         {SKIN_BAR.map((s) => {
           const isActive = mapSkin === s.id;

@@ -1128,16 +1128,15 @@ export function ThreatMap() {
       )}
 
       {/* Flights layer — NVG shows airplane glyphs, others show dots */}
-      {layers.flights && aircraft.length > 0 && (
+      {layers.flights && aircraft.length > 0 && mapSkin === "nvg" && (
         <Source id="flights" type="geojson" data={flightsData}>
-          {mapSkin === "nvg" ? (
-            <Layer {...flightLayerNVG} />
-          ) : (
-            <>
-              <Layer {...flightLayer} />
-              <Layer {...flightLabelLayer} />
-            </>
-          )}
+          <Layer {...flightLayerNVG} />
+        </Source>
+      )}
+      {layers.flights && aircraft.length > 0 && mapSkin !== "nvg" && (
+        <Source id="flights" type="geojson" data={flightsData}>
+          <Layer {...flightLayer} />
+          <Layer {...flightLabelLayer} />
         </Source>
       )}
 
