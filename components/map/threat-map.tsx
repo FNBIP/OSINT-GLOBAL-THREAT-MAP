@@ -307,6 +307,27 @@ const flightLayer: LayerProps = {
   },
 };
 
+// NVG-specific: airplane glyphs (green ✈ icons)
+const flightLayerNVG: LayerProps = {
+  id: "flights-layer-nvg",
+  type: "symbol",
+  layout: {
+    "text-field": "✈",
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 10,
+    "text-allow-overlap": true,
+    "text-ignore-placement": true,
+    "text-rotate": ["get", "track"],
+    "text-rotation-alignment": "map",
+  },
+  paint: {
+    "text-color": "#39ff14",
+    "text-halo-color": "rgba(0,40,0,0.5)",
+    "text-halo-width": 1,
+    "text-opacity": 0.9,
+  },
+};
+
 const flightLabelLayer: LayerProps = {
   id: "flights-labels",
   type: "symbol",
@@ -779,9 +800,9 @@ export function ThreatMap() {
     snow: "saturate(0.15) brightness(1.4) contrast(0.85)",
   };
 
-  // The lens circle is centered in the available area.
-  // Size = 76% of min(width,height) — matching video proportions
-  const lensSize = "min(76vw, 76vh)";
+  // The lens circle — nearly full screen, offset left to make room for panels
+  // Video shows circle takes ~70% of width, centered slightly right of the left panel
+  const lensSize = "min(72vh, 72vw)";
 
   return (
     // ── Root: full black background ──────────────────────────────────────────
@@ -800,14 +821,15 @@ export function ThreatMap() {
       {/* ── Circular lens container — map lives INSIDE here ── */}
       <div style={{
         position: "absolute",
-        top: "50%", left: "50%",
+        top: "50%",
+        // Offset right to sit between the left panel (~280px) and right panel (~260px)
+        left: "calc(50% + 10px)",
         transform: "translate(-50%, -50%)",
         width: lensSize,
         height: lensSize,
         borderRadius: "50%",
         overflow: "hidden",
-        // Subtle glowing ring border
-        boxShadow: "0 0 0 1px rgba(255,255,255,0.12), 0 0 0 2px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.6)",
+        boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 0 0 2px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.5)",
         zIndex: 3,
       }}>
 
@@ -832,6 +854,7 @@ export function ThreatMap() {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             attributionControl={false}
+            maxPitch={60}
           >
 
       {/* Country highlight layer */}
@@ -1081,11 +1104,17 @@ export function ThreatMap() {
         </Source>
       )}
 
-      {/* Flights layer */}
+      {/* Flights layer — NVG shows airplane glyphs, others show dots */}
       {layers.flights && aircraft.length > 0 && (
         <Source id="flights" type="geojson" data={flightsData}>
-          <Layer {...flightLayer} />
-          <Layer {...flightLabelLayer} />
+          {mapSkin === "nvg" ? (
+            <Layer {...flightLayerNVG} />
+          ) : (
+            <>
+              <Layer {...flightLayer} />
+              <Layer {...flightLabelLayer} />
+            </>
+          )}
         </Source>
       )}
 
@@ -1178,22 +1207,78 @@ export function ThreatMap() {
 
       </div>{/* end circular lens */}
 
+      {/* ── Floating VEH / SAT labels in the black outer area ── */}
+      <FloatingLabels satellites={satellites} vessels={vessels} />
+
       {/* ── Corner bracket decorations (outside the circle) ── */}
       {(["tl","tr","bl","br"] as const).map((corner) => (
         <div key={corner} style={{
           position: "absolute", zIndex: 9, pointerEvents: "none",
-          ...(corner === "tl" ? { top: "10%", left: "10%" } :
-              corner === "tr" ? { top: "10%", right: "10%" } :
-              corner === "bl" ? { bottom: "15%", left: "10%" } :
-                                { bottom: "15%", right: "10%" }),
-          width: 16, height: 16,
-          borderTop: corner.startsWith("t") ? "1px solid rgba(255,255,255,0.15)" : "none",
-          borderBottom: corner.startsWith("b") ? "1px solid rgba(255,255,255,0.15)" : "none",
-          borderLeft: corner.endsWith("l") ? "1px solid rgba(255,255,255,0.15)" : "none",
-          borderRight: corner.endsWith("r") ? "1px solid rgba(255,255,255,0.15)" : "none",
+          ...(corner === "tl" ? { top: "8%", left: "30%" } :
+              corner === "tr" ? { top: "8%", right: "2%" } :
+              corner === "bl" ? { bottom: "10%", left: "30%" } :
+                                { bottom: "10%", right: "2%" }),
+          width: 14, height: 14,
+          borderTop: corner.startsWith("t") ? "1px solid rgba(255,255,255,0.12)" : "none",
+          borderBottom: corner.startsWith("b") ? "1px solid rgba(255,255,255,0.12)" : "none",
+          borderLeft: corner.endsWith("l") ? "1px solid rgba(255,255,255,0.12)" : "none",
+          borderRight: corner.endsWith("r") ? "1px solid rgba(255,255,255,0.12)" : "none",
         }} />
       ))}
 
+    </div>
+  );
+}
+
+// ── Floating VEH / SAT labels in the black border area ───────────────────────
+function FloatingLabels({
+  satellites,
+  vessels,
+}: {
+  satellites: SatellitePosition[];
+  vessels: VesselState[];
+}) {
+  const { mapSkin } = useMapStore();
+  const color = mapSkin === "nvg" ? "#39ff14" : mapSkin === "crt" ? "#00ffcc" : "rgba(255,200,80,0.7)";
+
+  // Generate stable random positions around the circle edge (outside it)
+  const satLabels = satellites.slice(0, 18).map((s, i) => {
+    const angle = (i / 18) * 2 * Math.PI - Math.PI / 2;
+    const r = 50 + (i % 3) * 3; // 50–56% from center — just outside 72/2=36% radius
+    const x = 50 + r * Math.cos(angle);
+    const y = 50 + r * Math.sin(angle);
+    return { label: s.name.slice(0, 10), x, y };
+  });
+
+  const vehLabels = vessels.slice(0, 8).map((v, i) => {
+    const angle = ((i + 2) / 10) * 2 * Math.PI;
+    const r = 47 + (i % 4) * 2;
+    const x = 50 + r * Math.cos(angle);
+    const y = 50 + r * Math.sin(angle);
+    return { label: `VEH-${(v.mmsi || "").slice(-4) || String(1000 + i)}`, x, y };
+  });
+
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
+      {[...satLabels.map(l => ({ ...l, prefix: "SAT" })), ...vehLabels.map(l => ({ ...l, prefix: "VEH" }))].map((item, i) => {
+        // Only show if outside the circle area (x or y far from center)
+        const dx = item.x - 50, dy = item.y - 50;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 38) return null; // too close to center — inside circle
+        return (
+          <div key={i} style={{
+            position: "absolute",
+            left: `${item.x}%`, top: `${item.y}%`,
+            transform: "translate(-50%, -50%)",
+            fontSize: 7, fontFamily: "monospace", fontWeight: 600,
+            color, letterSpacing: "0.5px",
+            whiteSpace: "nowrap",
+            opacity: 0.7,
+          }}>
+            {item.label}
+          </div>
+        );
+      })}
     </div>
   );
 }

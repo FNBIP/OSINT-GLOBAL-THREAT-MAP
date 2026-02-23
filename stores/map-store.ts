@@ -138,13 +138,15 @@ export const useMapStore = create<MapState>((set) => ({
       viewport: { ...state.viewport, ...viewport },
     })),
 
-  flyTo: (longitude, latitude, zoom = 8) =>
+  flyTo: (longitude, latitude, zoom = 13) =>
     set((state) => ({
       viewport: {
         ...state.viewport,
         longitude,
         latitude,
         zoom,
+        pitch: zoom > 10 ? 45 : 0,   // tilt into 3D view when zoomed in
+        bearing: 0,
       },
     })),
 
