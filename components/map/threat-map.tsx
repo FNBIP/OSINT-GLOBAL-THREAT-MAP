@@ -26,14 +26,14 @@ import type { VesselState } from "@/app/api/ais/route";
 
 // ── Map skin styles ──────────────────────────────────────────────────────────
 const MAP_STYLES: Record<string, string> = {
-  eo:    "mapbox://styles/mapbox/dark-v11",           // EO — standard night map
-  flir:  "mapbox://styles/mapbox/satellite-v9",       // FLIR — satellite imagery base
-  crt:   "mapbox://styles/mapbox/dark-v11",           // CRT — dark base + CSS scanlines
-  nvg:   "mapbox://styles/mapbox/dark-v11",           // NVG — night-vision green tint
-  anime: "mapbox://styles/mapbox/streets-v12",        // Anime — colorful streets
-  noir:  "mapbox://styles/mapbox/dark-v11",           // Noir — desaturated dark
-  snow:  "mapbox://styles/mapbox/light-v11",          // Snow — bright/white
-  ai:    "mapbox://styles/mapbox/satellite-streets-v12", // AI — satellite+streets
+  eo:    "mapbox://styles/mapbox/dark-v11",                // EO — standard night map
+  flir:  "mapbox://styles/mapbox/satellite-v9",            // FLIR — satellite imagery base
+  crt:   "mapbox://styles/mapbox/satellite-v9",            // CRT — satellite base + scanlines
+  nvg:   "mapbox://styles/mapbox/satellite-v9",            // NVG — satellite + green tint
+  anime: "mapbox://styles/mapbox/streets-v12",             // Anime — colorful streets
+  noir:  "mapbox://styles/mapbox/dark-v11",                // Noir — desaturated dark
+  snow:  "mapbox://styles/mapbox/light-v11",               // Snow — bright/white
+  ai:    "mapbox://styles/mapbox/satellite-streets-v12",   // AI — satellite+streets
 };
 
 const APP_MODE = process.env.NEXT_PUBLIC_APP_MODE || "self-hosted";
@@ -771,105 +771,68 @@ export function ThreatMap() {
     );
   }
 
-  // CSS filter for each skin applied to the Map element
-  const skinFilter: Record<string, string | undefined> = {
-    flir:  "sepia(1) saturate(3) hue-rotate(90deg) brightness(0.7) contrast(1.4)",
-    nvg:   "saturate(0) brightness(1.2) contrast(1.3)",
-    noir:  "saturate(0) brightness(0.85) contrast(1.2)",
-    snow:  "saturate(0.2) brightness(1.3) contrast(0.9)",
-    anime: undefined,
-    eo:    undefined,
-    crt:   undefined,
-    ai:    undefined,
+  // CSS filter per skin — applied to the map wrapper inside the circle
+  const skinFilter: Partial<Record<string, string>> = {
+    flir: "sepia(1) saturate(4) hue-rotate(85deg) brightness(0.65) contrast(1.5)",
+    nvg:  "saturate(0) brightness(1.3) contrast(1.4)",
+    noir: "saturate(0) brightness(0.8) contrast(1.3)",
+    snow: "saturate(0.15) brightness(1.4) contrast(0.85)",
   };
 
+  // The lens circle is centered in the available area.
+  // Size = 76% of min(width,height) — matching video proportions
+  const lensSize = "min(76vw, 76vh)";
+
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", background: "#000" }}>
+    // ── Root: full black background ──────────────────────────────────────────
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#000", overflow: "hidden" }}>
 
-    {/* ── Skin CSS overlays ─────────────────────────────────────────────── */}
+      {/* ── WorldviewHUD — classified intel overlay (always full-screen) ── */}
+      <WorldviewHUD
+        mapLat={viewport.latitude}
+        mapLon={viewport.longitude}
+        mapZoom={viewport.zoom}
+      />
 
-    {/* CRT scanlines */}
-    {mapSkin === "crt" && (
+      {/* ── Panoptic overlay (full-screen) ── */}
+      {showPanoptic && <PanopticOverlay />}
+
+      {/* ── Circular lens container — map lives INSIDE here ── */}
       <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        backgroundImage: "repeating-linear-gradient(0deg, rgba(0,255,80,0.05) 0px, rgba(0,255,80,0.05) 1px, transparent 1px, transparent 3px)",
-        mixBlendMode: "screen",
-      }} />
-    )}
+        position: "absolute",
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: lensSize,
+        height: lensSize,
+        borderRadius: "50%",
+        overflow: "hidden",
+        // Subtle glowing ring border
+        boxShadow: "0 0 0 1px rgba(255,255,255,0.12), 0 0 0 2px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.6)",
+        zIndex: 3,
+      }}>
 
-    {/* NVG green tint */}
-    {mapSkin === "nvg" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        background: "rgba(30,80,10,0.45)",
-        mixBlendMode: "screen",
-      }} />
-    )}
-    {/* NVG grain noise */}
-    {mapSkin === "nvg" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        opacity: 0.12,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
-        backgroundSize: "200px 200px",
-      }} />
-    )}
-
-    {/* FLIR thermal tint */}
-    {mapSkin === "flir" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        background: "rgba(0,30,0,0.35)",
-        mixBlendMode: "multiply",
-      }} />
-    )}
-
-    {/* Noir film grain */}
-    {mapSkin === "noir" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        background: "rgba(10,5,0,0.3)",
-      }} />
-    )}
-
-    {/* Snow white haze */}
-    {mapSkin === "snow" && (
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
-        background: "rgba(220,240,255,0.12)",
-      }} />
-    )}
-
-    {/* Panoptic detection overlay */}
-    {showPanoptic && <PanopticOverlay />}
-
-    {/* WorldviewHUD — classified intel UI */}
-    <WorldviewHUD
-      mapLat={viewport.latitude}
-      mapLon={viewport.longitude}
-      mapZoom={viewport.zoom}
-    />
-
-    <Map
-      ref={mapRef}
-      {...viewport}
-      onMove={(evt) => setViewport(evt.viewState)}
-      mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
-      mapboxAccessToken={MAPBOX_TOKEN}
-      style={skinFilter[mapSkin] ? { filter: skinFilter[mapSkin] } : undefined}
-      interactiveLayerIds={
-        showClusters
-          ? ["clusters", "unclustered-point", "entity-locations", "military-bases-circle"]
-          : ["unclustered-point", "entity-locations", "military-bases-circle"]
-      }
-      onClick={handleMapClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      attributionControl={false}
-    >
-      <NavigationControl position="top-right" />
-      <GeolocateControl position="top-right" />
-      <ScaleControl position="bottom-right" />
+        {/* Map with skin filter applied */}
+        <div style={{
+          position: "absolute", inset: 0,
+          filter: skinFilter[mapSkin] ?? undefined,
+        }}>
+          <Map
+            ref={mapRef}
+            {...viewport}
+            onMove={(evt) => setViewport(evt.viewState)}
+            mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
+            mapboxAccessToken={MAPBOX_TOKEN}
+            style={{ width: "100%", height: "100%" }}
+            interactiveLayerIds={
+              showClusters
+                ? ["clusters", "unclustered-point", "entity-locations", "military-bases-circle"]
+                : ["unclustered-point", "entity-locations", "military-bases-circle"]
+            }
+            onClick={handleMapClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            attributionControl={false}
+          >
 
       {/* Country highlight layer */}
       {selectedCountryCode && (
@@ -1142,6 +1105,95 @@ export function ThreatMap() {
 
       <SignInModal open={showSignInModal} onOpenChange={setShowSignInModal} />
     </Map>
+        </div>{/* end filter wrapper */}
+
+        {/* ── Skin overlays — INSIDE the circle ── */}
+
+        {/* CRT: heavy horizontal scanlines over satellite */}
+        {mapSkin === "crt" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+            backgroundImage: [
+              "repeating-linear-gradient(0deg, rgba(0,0,0,0.45) 0px, rgba(0,0,0,0.45) 1px, transparent 1px, transparent 3px)",
+              "repeating-linear-gradient(0deg, rgba(80,200,255,0.03) 0px, rgba(80,200,255,0.03) 2px, transparent 2px, transparent 4px)",
+            ].join(", "),
+          }} />
+        )}
+        {/* CRT: color aberration tint */}
+        {mapSkin === "crt" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+            background: "linear-gradient(180deg, rgba(20,10,40,0.18) 0%, rgba(0,20,60,0.12) 50%, rgba(10,0,30,0.18) 100%)",
+            mixBlendMode: "multiply",
+          }} />
+        )}
+
+        {/* NVG: green phosphor tint */}
+        {mapSkin === "nvg" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+            background: "rgba(20,70,5,0.5)",
+            mixBlendMode: "screen",
+          }} />
+        )}
+        {/* NVG: scanlines */}
+        {mapSkin === "nvg" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+            backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px)",
+          }} />
+        )}
+
+        {/* FLIR: thermal green tint */}
+        {mapSkin === "flir" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+            background: "rgba(0,25,5,0.3)",
+            mixBlendMode: "multiply",
+          }} />
+        )}
+
+        {/* Noir: dark desaturated haze */}
+        {mapSkin === "noir" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+            background: "rgba(5,2,0,0.25)",
+          }} />
+        )}
+
+        {/* Snow: white haze */}
+        {mapSkin === "snow" && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+            background: "rgba(220,240,255,0.1)",
+          }} />
+        )}
+
+        {/* Inner lens vignette ring (darkens edges within the circle) */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 6, pointerEvents: "none",
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.85) 100%)",
+        }} />
+
+      </div>{/* end circular lens */}
+
+      {/* ── Corner bracket decorations (outside the circle) ── */}
+      {(["tl","tr","bl","br"] as const).map((corner) => (
+        <div key={corner} style={{
+          position: "absolute", zIndex: 9, pointerEvents: "none",
+          ...(corner === "tl" ? { top: "10%", left: "10%" } :
+              corner === "tr" ? { top: "10%", right: "10%" } :
+              corner === "bl" ? { bottom: "15%", left: "10%" } :
+                                { bottom: "15%", right: "10%" }),
+          width: 16, height: 16,
+          borderTop: corner.startsWith("t") ? "1px solid rgba(255,255,255,0.15)" : "none",
+          borderBottom: corner.startsWith("b") ? "1px solid rgba(255,255,255,0.15)" : "none",
+          borderLeft: corner.endsWith("l") ? "1px solid rgba(255,255,255,0.15)" : "none",
+          borderRight: corner.endsWith("r") ? "1px solid rgba(255,255,255,0.15)" : "none",
+        }} />
+      ))}
+
     </div>
   );
 }

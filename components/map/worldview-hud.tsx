@@ -249,43 +249,31 @@ export function WorldviewHUD({
         </div>
       </div>
 
-      {/* ── Circular lens vignette (telescope effect) ── */}
+      {/* ── Lens outer glow ring — sits around the circular map ── */}
       <div style={{
-        position: "absolute", inset: 0, zIndex: 7, pointerEvents: "none",
-        background: `radial-gradient(
-          ellipse 70% 80% at 50% 48%,
-          transparent 52%,
-          rgba(0,0,0,0.5) 68%,
-          rgba(0,0,0,0.85) 78%,
-          rgba(0,0,0,0.97) 88%,
-          rgb(0,0,0) 100%
-        )`,
-      }} />
+        position: "absolute", inset: 0, zIndex: 9, pointerEvents: "none",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{
+          width: "min(76vw, 76vh)",
+          height: "min(76vw, 76vh)",
+          borderRadius: "50%",
+          border: `1px solid rgba(255,255,255,0.14)`,
+          boxShadow: `0 0 0 1px rgba(255,255,255,0.04), 0 0 30px rgba(0,0,0,0.5)`,
+          flexShrink: 0,
+        }} />
+      </div>
 
       {/* ── Lens crosshair (center) ── */}
       <div style={{
-        position: "absolute", inset: 0, zIndex: 8, pointerEvents: "none",
+        position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <div style={{ position: "relative", width: 40, height: 40, opacity: 0.3 }}>
+        <div style={{ position: "relative", width: 40, height: 40, opacity: 0.25 }}>
           <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:1, background: activeColor, transform:"translateX(-50%)" }} />
           <div style={{ position:"absolute", top:"50%", left:0, right:0, height:1, background: activeColor, transform:"translateY(-50%)" }} />
           <div style={{ position:"absolute", inset: 12, border:`1px solid ${activeColor}`, borderRadius:"50%" }} />
         </div>
-      </div>
-
-      {/* ── Lens arc borders (circle outline effect) ── */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 8, pointerEvents: "none",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <div style={{
-          width: "70vmin", height: "80vmin",
-          maxWidth: "80%", maxHeight: "90%",
-          borderRadius: "50%",
-          border: `1px solid rgba(255,255,255,0.08)`,
-          boxShadow: `0 0 0 1px rgba(255,255,255,0.04), inset 0 0 60px rgba(0,0,0,0.1)`,
-        }} />
       </div>
 
       {/* ── Bottom-left: MGRS + DMS coordinates ── */}
