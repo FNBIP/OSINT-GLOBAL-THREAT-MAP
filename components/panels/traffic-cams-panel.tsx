@@ -3,45 +3,55 @@
 /**
  * Traffic & City Cams Panel — CCTV Mesh
  *
- * Live public webcam streams from major cities using verified YouTube embed IDs
- * sourced from SkylineWebcams (which configure their streams to allow embedding).
+ * Real live traffic camera JPEG images from government DOT & transport agencies
+ * worldwide, proxied through /api/cctv to avoid CORS.
  *
- * When a stream is unavailable the tile shows an animated static/noise effect
- * that mimics a real CCTV system losing signal — matching the WORLDVIEW video.
+ * Images auto-refresh every 15 seconds, giving a near-real-time surveillance
+ * feel. When a feed fails, animated canvas static/noise shows "NO SIGNAL".
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface CamFeed {
+interface CamInfo {
   id: string;
   label: string;
   city: string;
-  src: string;        // YouTube video ID
-  camCode: string;    // e.g. "CAM-01"
+  country: string;
+  camCode: string;
 }
 
-// Verified YouTube IDs from SkylineWebcams (embedding allowed)
-const CAMS: CamFeed[] = [
-  { id: "austin-tx",       label: "Austin, TX — Skyline",        city: "Austin",        src: "BAUriyvzXPk", camCode: "CAM-01" },
-  { id: "nyc-times",       label: "NYC — Times Square",          city: "New York",      src: "rnXIjl_Rzy4", camCode: "CAM-02" },
-  { id: "tokyo-shibuya",   label: "Tokyo — Shibuya Crossing",    city: "Tokyo",         src: "dfVK7ld38Ys", camCode: "CAM-03" },
-  { id: "london-thames",   label: "London — River Thames",       city: "London",        src: "v7RSr7RU-I0", camCode: "CAM-04" },
-  { id: "paris-notre-dame", label: "Paris — Notre Dame / Seine", city: "Paris",         src: "4GCTq0j2O0U", camCode: "CAM-05" },
-  { id: "singapore-port",  label: "Singapore — Port",            city: "Singapore",     src: "BcCLN2oCHb4", camCode: "CAM-06" },
-  { id: "hong-kong",       label: "Hong Kong — Skyline",         city: "Hong Kong",     src: "7XT3EY_1NPU", camCode: "CAM-07" },
-  { id: "dubai-palm",      label: "Dubai — Palm Jumeirah",       city: "Dubai",         src: "eLCq-_7MR3Q", camCode: "CAM-08" },
-  { id: "dc-capitol",      label: "Washington DC — Capitol",     city: "Washington DC", src: "UeH7F6IqcpA", camCode: "CAM-09" },
-  { id: "chicago-skyline", label: "Chicago — Downtown",          city: "Chicago",       src: "E3xLIjwfFqs", camCode: "CAM-10" },
-  { id: "sydney-opera",    label: "Sydney — Opera House",        city: "Sydney",        src: "RVko2pCRXzk", camCode: "CAM-11" },
-  { id: "istanbul-bosphor", label: "Istanbul — Bosphorus",       city: "Istanbul",      src: "Oqcp4J5ItcQ", camCode: "CAM-12" },
+// Camera catalog — mirrors the server-side list in /api/cctv
+// We only store metadata here; images come from /api/cctv?id=<id>
+const CAMERAS: CamInfo[] = [
+  // London (TfL JamCams)
+  { id: "london-tower-bridge",      label: "London — Tower Bridge",              city: "London",      country: "GB", camCode: "CAM-01" },
+  { id: "london-trafalgar",         label: "London — Trafalgar Square",          city: "London",      country: "GB", camCode: "CAM-02" },
+  { id: "london-westminster",       label: "London — Westminster Bridge",        city: "London",      country: "GB", camCode: "CAM-03" },
+  { id: "london-park-lane",         label: "London — Park Lane / Hyde Park",     city: "London",      country: "GB", camCode: "CAM-04" },
+  { id: "london-a40-westway",       label: "London — A40 Westway",              city: "London",      country: "GB", camCode: "CAM-05" },
+  // Singapore (data.gov.sg — 5 cameras)
+  { id: "singapore-sle-1006",       label: "Singapore — SLE Mandai",             city: "Singapore",   country: "SG", camCode: "CAM-06" },
+  { id: "singapore-bke-1003",       label: "Singapore — BKE Dairy Farm",         city: "Singapore",   country: "SG", camCode: "CAM-07" },
+  { id: "singapore-ecp-1001",       label: "Singapore — ECP Benjamin Sheares",   city: "Singapore",   country: "SG", camCode: "CAM-12" },
+  { id: "singapore-cte-1004",       label: "Singapore — CTE Moulmein",           city: "Singapore",   country: "SG", camCode: "CAM-13" },
+  { id: "singapore-pie-1005",       label: "Singapore — PIE Clementi",           city: "Singapore",   country: "SG", camCode: "CAM-14" },
+  // Los Angeles (Caltrans D7)
+  { id: "la-i110-cypress",          label: "Los Angeles — I-110 Cypress Park",   city: "Los Angeles", country: "US", camCode: "CAM-09" },
+  { id: "la-i5-slauson",            label: "Los Angeles — I-5 @ Slauson",        city: "Los Angeles", country: "US", camCode: "CAM-10" },
+  { id: "la-i5-south-i10",          label: "Los Angeles — I-5 South of I-10",    city: "Los Angeles", country: "US", camCode: "CAM-11" },
+  // Hong Kong (data.one.gov.hk — verified IDs)
+  { id: "hk-tsing-yi",              label: "Hong Kong — Tsing Yi Bridge",        city: "Hong Kong",   country: "HK", camCode: "CAM-15" },
+  { id: "hk-tuen-mun",              label: "Hong Kong — Tuen Mun Road",          city: "Hong Kong",   country: "HK", camCode: "CAM-16" },
+  { id: "hk-kwai-chung",            label: "Hong Kong — Kwai Chung Expressway",  city: "Hong Kong",   country: "HK", camCode: "CAM-17" },
+  { id: "hk-tai-po",                label: "Hong Kong — Tai Po Road",            city: "Hong Kong",   country: "HK", camCode: "CAM-18" },
 ];
 
-const CITIES = ["All", ...Array.from(new Set(CAMS.map((c) => c.city)))];
-
+const CITIES = ["All", ...Array.from(new Set(CAMERAS.map((c) => c.city)))];
 const mono: React.CSSProperties = { fontFamily: "monospace", letterSpacing: "0.5px" };
+const REFRESH_MS = 15_000;  // refresh images every 15s
 
 // ── Animated static / noise canvas ─────────────────────────────────────────────
-function StaticNoise({ width = 320, height = 180 }: { width?: number; height?: number }) {
+function StaticNoise() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -55,11 +65,8 @@ function StaticNoise({ width = 320, height = 180 }: { width?: number; height?: n
       const imageData = ctx.createImageData(canvas.width, canvas.height);
       const data = imageData.data;
       for (let i = 0; i < data.length; i += 4) {
-        const v = Math.random() * 40;   // dark static
-        data[i]     = v;
-        data[i + 1] = v;
-        data[i + 2] = v;
-        data[i + 3] = 255;
+        const v = Math.random() * 40;
+        data[i] = v; data[i + 1] = v; data[i + 2] = v; data[i + 3] = 255;
       }
       ctx.putImageData(imageData, 0, 0);
       raf = requestAnimationFrame(draw);
@@ -71,74 +78,87 @@ function StaticNoise({ width = 320, height = 180 }: { width?: number; height?: n
   return (
     <canvas
       ref={canvasRef}
-      width={width / 2}
-      height={height / 2}
+      width={160}
+      height={90}
       style={{ width: "100%", height: "100%", display: "block", imageRendering: "pixelated" }}
     />
   );
 }
 
-// ── Single camera tile ──────────────────────────────────────────────────────────
-function CamTile({ cam, expanded = false }: { cam: CamFeed; expanded?: boolean }) {
-  const [status, setStatus] = useState<"loading" | "live" | "offline">("loading");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // YouTube embed URL — autoplay muted, no controls, no branding
-  const embedUrl = `https://www.youtube.com/embed/${cam.src}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${cam.src}&playsinline=1`;
-
-  // If iframe loads, mark as live after a delay (YouTube doesn't fire error reliably)
-  const handleLoad = useCallback(() => {
-    setTimeout(() => {
-      if (status === "loading") setStatus("live");
-    }, 2000);
-  }, [status]);
-
-  // After 8s, if still loading → treat as offline
+// ── Ticking timestamp ────────────────────────────────────────────────────────────
+function TimestampTick() {
+  const [time, setTime] = useState(new Date());
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (status === "loading") setStatus("offline");
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [status]);
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <>{time.toISOString().slice(11, 19)}Z</>;
+}
 
-  const showNoise = status === "offline";
+// ── Single camera tile ──────────────────────────────────────────────────────────
+function CamTile({ cam, expanded = false }: { cam: CamInfo; expanded?: boolean }) {
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // Auto-refresh image every REFRESH_MS
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadImage = () => {
+      const url = `/api/cctv?id=${cam.id}&t=${Date.now()}`;
+      const img = new Image();
+      img.onload = () => {
+        if (!cancelled) {
+          setImgSrc(url);
+          setOffline(false);
+        }
+      };
+      img.onerror = () => {
+        if (!cancelled) setOffline(true);
+      };
+      img.src = url;
+    };
+
+    loadImage();
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+      loadImage();
+    }, REFRESH_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [cam.id]);
 
   return (
     <div style={{
       position: "relative",
       background: "#050505",
-      border: `1px solid ${showNoise ? "rgba(255,50,50,0.25)" : "rgba(0,255,100,0.15)"}`,
+      border: `1px solid ${offline ? "rgba(255,50,50,0.25)" : "rgba(0,255,100,0.15)"}`,
       borderRadius: 2,
       overflow: "hidden",
-      aspectRatio: expanded ? "16/9" : "16/9",
+      aspectRatio: "16/9",
     }}>
-      {/* The iframe (hidden if offline) */}
-      {!showNoise && (
-        <iframe
-          ref={iframeRef}
-          src={embedUrl}
-          allow="autoplay; encrypted-media"
+      {/* Live image */}
+      {imgSrc && !offline && (
+        <img
+          src={imgSrc}
+          alt={cam.label}
           style={{
-            width: "100%", height: "100%", border: "none",
-            opacity: status === "live" ? 1 : 0.3,
-            transition: "opacity 0.5s ease",
+            width: "100%", height: "100%",
+            objectFit: "cover",
+            display: "block",
           }}
-          onLoad={handleLoad}
-          title={cam.label}
         />
       )}
 
       {/* Static noise when offline */}
-      {showNoise && (
+      {(offline || !imgSrc) && (
         <div style={{ position: "absolute", inset: 0 }}>
           <StaticNoise />
-          {/* Scanlines over noise */}
           <div style={{
             position: "absolute", inset: 0,
             backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0px, rgba(0,0,0,0.5) 1px, transparent 1px, transparent 3px)",
             pointerEvents: "none",
           }} />
-          {/* NO SIGNAL text */}
           <div style={{
             position: "absolute", inset: 0,
             display: "flex", flexDirection: "column",
@@ -155,10 +175,10 @@ function CamTile({ cam, expanded = false }: { cam: CamFeed; expanded?: boolean }
         </div>
       )}
 
-      {/* Corner brackets — CCTV style */}
+      {/* Corner brackets */}
       {(["tl","tr","bl","br"] as const).map((c) => (
         <div key={c} style={{
-          position: "absolute", width: 8, height: 8, pointerEvents: "none",
+          position: "absolute", width: 8, height: 8, pointerEvents: "none", zIndex: 3,
           ...(c === "tl" ? { top: 2, left: 2 } :
               c === "tr" ? { top: 2, right: 2 } :
               c === "bl" ? { bottom: 2, left: 2 } :
@@ -170,37 +190,35 @@ function CamTile({ cam, expanded = false }: { cam: CamFeed; expanded?: boolean }
         }} />
       ))}
 
-      {/* Top-left: CAM code + REC */}
+      {/* REC badge + cam code */}
       <div style={{
-        position: "absolute", top: 4, left: 10,
+        position: "absolute", top: 4, left: 10, zIndex: 3,
         display: "flex", alignItems: "center", gap: 4,
         pointerEvents: "none",
       }}>
         <span style={{
           fontSize: 7, fontWeight: 800, ...mono, padding: "1px 4px",
           borderRadius: 2,
-          background: showNoise ? "rgba(255,50,50,0.7)" : "rgba(255,50,50,0.85)",
-          color: "#fff",
-        }}>
-          REC
-        </span>
+          background: offline ? "rgba(255,50,50,0.5)" : "rgba(255,50,50,0.85)",
+          color: "#fff", animation: offline ? "none" : "wv-blink 1s step-end infinite",
+        }}>REC</span>
         <span style={{ fontSize: 7, fontWeight: 700, color: "rgba(255,255,255,0.6)", ...mono }}>
           {cam.camCode}
         </span>
       </div>
 
-      {/* Top-right: timestamp */}
+      {/* Timestamp */}
       <div style={{
-        position: "absolute", top: 4, right: 10,
+        position: "absolute", top: 4, right: 10, zIndex: 3,
         fontSize: 7, color: "rgba(255,255,255,0.4)", ...mono,
         pointerEvents: "none",
       }}>
         <TimestampTick />
       </div>
 
-      {/* Bottom label */}
+      {/* Bottom label + status badge */}
       <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
+        position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 3,
         padding: "3px 10px",
         background: "linear-gradient(transparent, rgba(0,0,0,0.85))",
         fontSize: 8, color: "rgba(255,255,255,0.7)", fontWeight: 600,
@@ -210,41 +228,32 @@ function CamTile({ cam, expanded = false }: { cam: CamFeed; expanded?: boolean }
         <span>{cam.label}</span>
         <span style={{
           fontSize: 6, padding: "1px 3px", borderRadius: 2,
-          background: showNoise ? "rgba(255,50,50,0.3)" : "rgba(0,255,80,0.2)",
-          color: showNoise ? "#ff5555" : "#00ff50",
-          border: `1px solid ${showNoise ? "rgba(255,50,50,0.4)" : "rgba(0,255,80,0.3)"}`,
+          background: offline ? "rgba(255,50,50,0.3)" : "rgba(0,255,80,0.2)",
+          color: offline ? "#ff5555" : "#00ff50",
+          border: `1px solid ${offline ? "rgba(255,50,50,0.4)" : "rgba(0,255,80,0.3)"}`,
         }}>
-          {showNoise ? "OFFLINE" : "LIVE"}
+          {offline ? "OFFLINE" : "LIVE"}
         </span>
       </div>
 
-      {/* Scanlines over live feed too (subtle) */}
-      {!showNoise && (
+      {/* Scanlines overlay (subtle, over live feed) */}
+      {!offline && imgSrc && (
         <div style={{
           position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
-          backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)",
+          backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px)",
         }} />
       )}
     </div>
   );
 }
 
-// ── Ticking timestamp ────────────────────────────────────────────────────────────
-function TimestampTick() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return <>{time.toISOString().slice(11, 19)}Z</>;
-}
-
 // ── Main panel ──────────────────────────────────────────────────────────────────
 export function TrafficCamsPanel() {
-  const [activeCam, setActiveCam] = useState<CamFeed | null>(null);
+  const [activeCam, setActiveCam] = useState<CamInfo | null>(null);
   const [cityFilter, setCityFilter] = useState("All");
 
-  const filtered = cityFilter === "All" ? CAMS : CAMS.filter((c) => c.city === cityFilter);
+  const filtered = cityFilter === "All" ? CAMERAS : CAMERAS.filter((c) => c.city === cityFilter);
+  const onlineCount = filtered.length; // optimistic
 
   return (
     <div style={{
@@ -280,13 +289,13 @@ export function TrafficCamsPanel() {
         </div>
       </div>
 
-      {/* City filter tabs */}
+      {/* City filter */}
       <div style={{
         display: "flex", gap: 3, padding: "4px 8px",
         overflowX: "auto", scrollbarWidth: "none", flexShrink: 0,
         borderBottom: "1px solid rgba(255,255,255,0.04)",
       }}>
-        {CITIES.slice(0, 10).map((city) => (
+        {CITIES.map((city) => (
           <button
             key={city}
             onClick={() => { setCityFilter(city); setActiveCam(null); }}
@@ -298,30 +307,28 @@ export function TrafficCamsPanel() {
               border: `1px solid ${cityFilter === city ? "rgba(0,255,80,0.3)" : "transparent"}`,
               ...mono,
             }}
-          >
-            {city}
-          </button>
+          >{city}</button>
         ))}
       </div>
 
-      {/* Expanded cam view */}
+      {/* Expanded cam */}
       {activeCam && (
         <div style={{ position: "relative", flexShrink: 0, margin: "4px 6px 0" }}>
           <CamTile cam={activeCam} expanded />
           <button
             onClick={() => setActiveCam(null)}
             style={{
-              position: "absolute", top: 4, right: 32,
+              position: "absolute", top: 4, right: 32, zIndex: 5,
               fontSize: 8, padding: "2px 6px", cursor: "pointer",
               background: "rgba(0,0,0,0.8)", color: "#fff",
               border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2,
-              zIndex: 5, ...mono,
+              ...mono,
             }}
           >✕ CLOSE</button>
         </div>
       )}
 
-      {/* Grid of camera tiles */}
+      {/* Camera grid */}
       <div style={{
         overflowY: "auto", flex: 1,
         display: "grid",
@@ -339,19 +346,22 @@ export function TrafficCamsPanel() {
         ))}
       </div>
 
-      {/* Bottom status bar */}
+      {/* Bottom status */}
       <div style={{
         padding: "3px 10px",
         borderTop: "1px solid rgba(255,255,255,0.04)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <span style={{ fontSize: 7, color: "rgba(255,255,255,0.2)", ...mono }}>
-          WORLDVIEW CCTV NETWORK
+          WORLDVIEW CCTV NETWORK • REFRESH 15s
         </span>
         <span style={{ fontSize: 7, color: "rgba(255,255,255,0.2)", ...mono }}>
-          {filtered.length}/{CAMS.length} ACTIVE
+          {filtered.length}/{CAMERAS.length} ACTIVE
         </span>
       </div>
+
+      {/* REC blink animation */}
+      <style>{`@keyframes wv-blink { 0%,100%{opacity:1} 50%{opacity:0.15} }`}</style>
     </div>
   );
 }
