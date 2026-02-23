@@ -53,7 +53,7 @@ export function MapControls() {
     <div style={{
       position: "absolute",
       bottom: "28px",
-      left: "10px",
+      left: "280px",    // clear the left-side WorldviewHUD panel (270px + gap)
       right: "270px",   // leave room for the right-side WorldviewHUD panel
       zIndex: 10,
       display: "flex",
