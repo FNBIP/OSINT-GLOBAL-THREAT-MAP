@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import WebSocket from "ws";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,7 @@ function collectVessels(bbox: {
     // WebSocket if available, otherwise dynamic import ws.
     const seen = new Map<string, VesselState>();
     let done = false;
-    let ws: WebSocket | null = null;
+    let ws: InstanceType<typeof WebSocket> | null = null;
 
     const finish = () => {
       if (done) return;
@@ -129,17 +130,7 @@ function collectVessels(bbox: {
     const timer = setTimeout(finish, COLLECT_MS);
 
     try {
-      // Use the global WebSocket (available in Node 22+ / Next.js 15+)
-      // or fall back to the ws package if needed.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const WS: typeof WebSocket = (globalThis as any).WebSocket;
-      if (!WS) {
-        clearTimeout(timer);
-        reject(new Error("WebSocket not available in this runtime"));
-        return;
-      }
-
-      ws = new WS("wss://stream.aisstream.io/v0/stream");
+      ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
 
       ws.onopen = () => {
         ws!.send(JSON.stringify({
