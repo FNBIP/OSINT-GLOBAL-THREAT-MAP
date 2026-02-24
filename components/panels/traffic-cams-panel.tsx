@@ -99,32 +99,34 @@ function TimestampTick() {
 function CamTile({ cam, expanded = false }: { cam: CamInfo; expanded?: boolean }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
-  const [tick, setTick] = useState(0);
 
-  // Auto-refresh image every REFRESH_MS
+  // Auto-refresh image every REFRESH_MS using fetch to properly check status
   useEffect(() => {
     let cancelled = false;
 
-    const loadImage = () => {
-      const url = `/api/cctv?id=${cam.id}&t=${Date.now()}`;
-      const img = new Image();
-      img.onload = () => {
-        if (!cancelled) {
-          setImgSrc(url);
+    const loadImage = async () => {
+      try {
+        const url = `/api/cctv?id=${cam.id}&t=${Date.now()}`;
+        const res = await fetch(url, { cache: "no-store" });
+        if (cancelled) return;
+        const ct = res.headers.get("content-type") || "";
+        if (res.ok && ct.startsWith("image/")) {
+          // Create object URL from blob for reliable display
+          const blob = await res.blob();
+          if (cancelled) return;
+          const objectUrl = URL.createObjectURL(blob);
+          setImgSrc((prev) => { if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev); return objectUrl; });
           setOffline(false);
+        } else {
+          setOffline(true);
         }
-      };
-      img.onerror = () => {
+      } catch {
         if (!cancelled) setOffline(true);
-      };
-      img.src = url;
+      }
     };
 
     loadImage();
-    const interval = setInterval(() => {
-      setTick(t => t + 1);
-      loadImage();
-    }, REFRESH_MS);
+    const interval = setInterval(loadImage, REFRESH_MS);
     return () => { cancelled = true; clearInterval(interval); };
   }, [cam.id]);
 
