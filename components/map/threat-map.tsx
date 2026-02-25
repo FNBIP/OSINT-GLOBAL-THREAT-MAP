@@ -385,9 +385,26 @@ const cablesLineLayer: LayerProps = {
   id: "cables-layer",
   type: "line",
   paint: {
-    "line-color": "#00ccff",
-    "line-width": 1.5,
-    "line-opacity": 0.7,
+    "line-color": [
+      "match", ["get", "status"],
+      "damaged", "#ef4444",
+      "degraded", "#eab308",
+      "decommissioned", "#666666",
+      "#00ccff",
+    ],
+    "line-width": [
+      "match", ["get", "status"],
+      "damaged", 2.5,
+      "degraded", 2,
+      1.5,
+    ],
+    "line-opacity": [
+      "match", ["get", "status"],
+      "decommissioned", 0.35,
+      "damaged", 0.85,
+      "degraded", 0.8,
+      0.7,
+    ],
     "line-dasharray": [4, 2],
   },
 };
@@ -405,10 +422,20 @@ const cablesLabelLayer: LayerProps = {
     "text-max-angle": 30,
   },
   paint: {
-    "text-color": "#00ccff",
+    "text-color": [
+      "match", ["get", "status"],
+      "damaged", "#ef4444",
+      "degraded", "#eab308",
+      "decommissioned", "#666666",
+      "#00ccff",
+    ],
     "text-halo-color": "#000000",
     "text-halo-width": 1,
-    "text-opacity": 0.6,
+    "text-opacity": [
+      "match", ["get", "status"],
+      "decommissioned", 0.35,
+      0.6,
+    ],
   },
 };
 
@@ -543,6 +570,7 @@ interface SelectedCable {
   rfs_year: number;
   owners: string;
   capacity: string;
+  status: string;
 }
 
 interface SelectedPipeline {
@@ -966,6 +994,7 @@ export function ThreatMap() {
             rfs_year: feature.properties?.rfs_year ?? 0,
             owners: feature.properties?.owners || "—",
             capacity: feature.properties?.capacity || "—",
+            status: feature.properties?.status || "active",
           });
           selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
           setSelectedVessel(null); setSelectedFlight(null); setSelectedSatellite(null);
@@ -1535,12 +1564,30 @@ export function ThreatMap() {
         >
           <div className="min-w-[220px] p-2">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
-                <span className="text-cyan-400 text-sm">〰</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                selectedCable.status === "damaged" ? "bg-red-500/20" :
+                selectedCable.status === "degraded" ? "bg-yellow-500/20" :
+                selectedCable.status === "decommissioned" ? "bg-gray-500/20" :
+                "bg-cyan-500/20"
+              }`}>
+                <span className={`text-sm ${
+                  selectedCable.status === "damaged" ? "text-red-400" :
+                  selectedCable.status === "degraded" ? "text-yellow-400" :
+                  selectedCable.status === "decommissioned" ? "text-gray-400" :
+                  "text-cyan-400"
+                }`}>〰</span>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">{selectedCable.name}</h3>
-                <span className="text-xs text-cyan-400">Submarine Cable</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-cyan-400">Submarine Cable</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider ${
+                    selectedCable.status === "damaged" ? "bg-red-500/20 text-red-400" :
+                    selectedCable.status === "degraded" ? "bg-yellow-500/20 text-yellow-400" :
+                    selectedCable.status === "decommissioned" ? "bg-gray-500/20 text-gray-400" :
+                    "bg-emerald-500/20 text-emerald-400"
+                  }`}>{selectedCable.status}</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1 text-xs text-muted-foreground">

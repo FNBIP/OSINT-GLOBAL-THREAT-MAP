@@ -36,11 +36,11 @@ export interface CctvCamera {
 // ── Camera catalog — all URLs verified working 2026-02-23 ─────────────────────
 const CAMERAS: CctvCamera[] = [
   // ── London (TfL JamCams — direct S3 JPEG, no auth, refreshes ~30s) ─────────
-  { id: "london-tower-bridge",   label: "London — Tower Bridge",               city: "London",        country: "GB", camCode: "CAM-01", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.09606.jpg",  lat: 51.5055, lon: -0.0754 },
+  { id: "london-euston-road",     label: "London — Euston Road",                city: "London",        country: "GB", camCode: "CAM-01", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.02001.jpg",  lat: 51.5267, lon: -0.1300 },
   { id: "london-trafalgar",      label: "London — Trafalgar Square",           city: "London",        country: "GB", camCode: "CAM-02", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03601.jpg",  lat: 51.5080, lon: -0.1281 },
-  { id: "london-westminster",    label: "London — Westminster Bridge",         city: "London",        country: "GB", camCode: "CAM-03", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.02258.jpg",  lat: 51.5007, lon: -0.1220 },
+  { id: "london-old-street",     label: "London — Old Street",                city: "London",        country: "GB", camCode: "CAM-03", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03651.jpg",  lat: 51.5258, lon: -0.0876 },
   { id: "london-park-lane",      label: "London — Park Lane / Hyde Park",      city: "London",        country: "GB", camCode: "CAM-04", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.04245.jpg",  lat: 51.5074, lon: -0.1552 },
-  { id: "london-a40-westway",    label: "London — A40 Westway",               city: "London",        country: "GB", camCode: "CAM-05", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00002.00607.jpg",  lat: 51.5197, lon: -0.2108 },
+  { id: "london-kings-cross",    label: "London — Kings Cross",               city: "London",        country: "GB", camCode: "CAM-05", imageUrl: "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.04604.jpg",  lat: 51.5310, lon: -0.1240 },
 
   // ── Singapore extra (data.gov.sg — more cameras for coverage) ────────────────
   { id: "singapore-sle-1006",       label: "Singapore — SLE Mandai",            city: "Singapore", country: "SG", camCode: "CAM-06", imageUrl: "", dynamicApi: "https://api.data.gov.sg/v1/transport/traffic-images", dynamicParser: "singapore:1006", lat: 1.3988, lon: 103.7737 },
@@ -48,7 +48,7 @@ const CAMERAS: CctvCamera[] = [
 
   // ── Los Angeles (Caltrans D7 — direct JPEG, no auth) ───────────────────────
   { id: "la-i110-cypress",          label: "Los Angeles — I-110 Cypress Park",   city: "Los Angeles", country: "US", camCode: "CAM-09", imageUrl: "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i110196avenue26offramp/i110196avenue26offramp.jpg", lat: 34.0837, lon: -118.2215 },
-  { id: "la-i5-slauson",            label: "Los Angeles — I-5 @ Slauson",        city: "Los Angeles", country: "US", camCode: "CAM-10", imageUrl: "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i52slausonave/i52slausonave.jpg", lat: 33.9786, lon: -118.1279 },
+  { id: "la-i5-meadowdale",          label: "Los Angeles — I-5 Meadowdale",       city: "Los Angeles", country: "US", camCode: "CAM-10", imageUrl: "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i525meadowdale/i525meadowdale.jpg", lat: 34.1118, lon: -118.2277 },
   { id: "la-i5-south-i10",          label: "Los Angeles — I-5 South of I-10",    city: "Los Angeles", country: "US", camCode: "CAM-11", imageUrl: "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i517southofi10/i517southofi10.jpg", lat: 34.0537, lon: -118.2139 },
 
   // ── Singapore (data.gov.sg — dynamic API, no auth, 90 cameras) ─────────────

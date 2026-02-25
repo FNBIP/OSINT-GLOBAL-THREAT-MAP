@@ -44,6 +44,45 @@ export class CreditError extends Error {
   }
 }
 
+// Helper: check if an error is a transient server error worth retrying
+function isTransientError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return (
+    msg.includes("500") ||
+    msg.includes("502") ||
+    msg.includes("503") ||
+    msg.includes("api_error") ||
+    msg.includes("Internal server error") ||
+    msg.includes("overloaded") ||
+    msg.includes("ECONNRESET") ||
+    msg.includes("ETIMEDOUT") ||
+    msg.includes("fetch failed")
+  );
+}
+
+// Retry wrapper with exponential backoff for transient API errors
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  { maxRetries = 2, baseDelayMs = 1000, label = "API call" } = {}
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries && isTransientError(error)) {
+        const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
+        console.warn(`[${label}] Attempt ${attempt + 1} failed (transient), retrying in ${Math.round(delay)}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function callViaProxy(
   path: string,
   body: any,
@@ -199,10 +238,13 @@ export async function searchEvents(
 
   try {
     const valyu = getValyuClient();
-    const response = await valyu.search(query, {
-      searchType: "news",
-      maxNumResults: options?.maxResults || 20,
-    });
+    const response = await withRetry(
+      () => valyu.search(query, {
+        searchType: "news",
+        maxNumResults: options?.maxResults || 20,
+      }),
+      { maxRetries: 2, baseDelayMs: 1000, label: `Valyu search "${query.slice(0, 30)}"` }
+    );
 
     if (!response.results) {
       return { results: [] };
@@ -221,12 +263,17 @@ export async function searchEvents(
       }),
     };
   } catch (error) {
-    console.error("Search error:", error);
     // Check if it's a credit error
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (isCreditErrorMessage(errorMsg)) {
       return { results: [], requiresCredits: true };
     }
+    // For transient/500 errors, return empty results instead of crashing
+    if (isTransientError(error)) {
+      console.warn(`[Valyu] Search failed after retries for "${query.slice(0, 40)}":`, errorMsg.slice(0, 120));
+      return { results: [] };
+    }
+    console.error("[Valyu] Search error:", errorMsg.slice(0, 200));
     throw error;
   }
 }
@@ -368,12 +415,15 @@ export async function getEntityResearch(entityName: string, options?: EntityOpti
 
   try {
     const valyu = getValyuClient();
-    const response = await valyu.search(
-      `${entityName} profile background information`,
-      {
-        searchType: "all",
-        maxNumResults: 10,
-      }
+    const response = await withRetry(
+      () => valyu.search(
+        `${entityName} profile background information`,
+        {
+          searchType: "all",
+          maxNumResults: 10,
+        }
+      ),
+      { maxRetries: 2, baseDelayMs: 1000, label: `Entity research "${entityName}"` }
     );
 
     if (!response.results || response.results.length === 0) {
@@ -398,12 +448,15 @@ export async function getEntityResearch(entityName: string, options?: EntityOpti
       },
     };
   } catch (error) {
-    console.error("Entity research error:", error);
-    // Check if it's a credit error
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (isCreditErrorMessage(errorMsg)) {
       throw new CreditError(errorMsg);
     }
+    if (isTransientError(error)) {
+      console.warn(`[Valyu] Entity research failed after retries for "${entityName}":`, errorMsg.slice(0, 120));
+      return null;
+    }
+    console.error("[Valyu] Entity research error:", errorMsg.slice(0, 200));
     throw error;
   }
 }
@@ -475,14 +528,14 @@ Be thorough but concise. Focus on verified facts from reliable sources.`;
     return;
   }
 
-  // Self-hosted mode: use SDK with streaming
+  // Self-hosted mode: use SDK with streaming (with retry on initial call)
   const valyu = getValyuClient();
 
   try {
-    const stream = await valyu.answer(query, {
-      excludedSources: ["wikipedia.org"],
-      streaming: true,
-    });
+    const stream = await withRetry(
+      () => valyu.answer(query, { excludedSources: ["wikipedia.org"], streaming: true }),
+      { label: `Stream entity "${entityName}"` }
+    );
 
     if (Symbol.asyncIterator in (stream as object)) {
       for await (const chunk of stream as AsyncGenerator<{
@@ -541,12 +594,12 @@ export async function searchEntityLocations(entityName: string, options?: Entity
 
   try {
     const valyu = getValyuClient();
-    const response = await valyu.search(
-      `${entityName} headquarters offices locations branches worldwide operations`,
-      {
-        searchType: "all",
-        maxNumResults: 15,
-      }
+    const response = await withRetry(
+      () => valyu.search(
+        `${entityName} headquarters offices locations branches worldwide operations`,
+        { searchType: "all", maxNumResults: 15 }
+      ),
+      { label: `Entity locations "${entityName}"` }
     );
 
     if (!response.results || response.results.length === 0) {
@@ -557,7 +610,7 @@ export async function searchEntityLocations(entityName: string, options?: Entity
       .map((r) => (typeof r.content === "string" ? r.content : ""))
       .join("\n\n");
   } catch (error) {
-    console.error("Entity locations error:", error);
+    console.warn("[Valyu] Entity locations error:", (error instanceof Error ? error.message : "").slice(0, 120));
     return "";
   }
 }
@@ -1210,12 +1263,12 @@ export async function getCountryConflicts(
     };
   }
 
-  // Self-hosted mode: use SDK directly
+  // Self-hosted mode: use SDK directly with retry
   const valyu = getValyuClient();
 
   const [pastResponse, currentResponse] = await Promise.all([
-    valyu.answer(pastQuery, { excludedSources: ["wikipedia.org"] }),
-    valyu.answer(currentQuery, { excludedSources: ["wikipedia.org"] }),
+    withRetry(() => valyu.answer(pastQuery, { excludedSources: ["wikipedia.org"] }), { label: "Country conflicts (past)" }),
+    withRetry(() => valyu.answer(currentQuery, { excludedSources: ["wikipedia.org"] }), { label: "Country conflicts (current)" }),
   ]);
 
   const pastData = pastResponse as AnswerResponse;
@@ -1325,14 +1378,14 @@ export async function* streamCountryConflicts(
     return;
   }
 
-  // Self-hosted mode: use SDK with streaming
+  // Self-hosted mode: use SDK with streaming (with retry on initial call)
   const valyu = getValyuClient();
 
   try {
-    const currentStream = await valyu.answer(currentQuery, {
-      excludedSources: ["wikipedia.org"],
-      streaming: true,
-    });
+    const currentStream = await withRetry(
+      () => valyu.answer(currentQuery, { excludedSources: ["wikipedia.org"], streaming: true }),
+      { label: "Stream conflicts (current)" }
+    );
 
     // Check if the SDK returned an error instead of a stream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1365,10 +1418,10 @@ export async function* streamCountryConflicts(
       }
     }
 
-    const pastStream = await valyu.answer(pastQuery, {
-      excludedSources: ["wikipedia.org"],
-      streaming: true,
-    });
+    const pastStream = await withRetry(
+      () => valyu.answer(pastQuery, { excludedSources: ["wikipedia.org"], streaming: true }),
+      { label: "Stream conflicts (past)" }
+    );
 
     // Check for error on past query too
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

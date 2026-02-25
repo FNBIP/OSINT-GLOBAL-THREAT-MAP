@@ -24,11 +24,11 @@ interface CamInfo {
 // We only store metadata here; images come from /api/cctv?id=<id>
 const CAMERAS: CamInfo[] = [
   // London (TfL JamCams)
-  { id: "london-tower-bridge",      label: "London — Tower Bridge",              city: "London",      country: "GB", camCode: "CAM-01" },
+  { id: "london-euston-road",        label: "London — Euston Road",               city: "London",      country: "GB", camCode: "CAM-01" },
   { id: "london-trafalgar",         label: "London — Trafalgar Square",          city: "London",      country: "GB", camCode: "CAM-02" },
-  { id: "london-westminster",       label: "London — Westminster Bridge",        city: "London",      country: "GB", camCode: "CAM-03" },
+  { id: "london-old-street",        label: "London — Old Street",               city: "London",      country: "GB", camCode: "CAM-03" },
   { id: "london-park-lane",         label: "London — Park Lane / Hyde Park",     city: "London",      country: "GB", camCode: "CAM-04" },
-  { id: "london-a40-westway",       label: "London — A40 Westway",              city: "London",      country: "GB", camCode: "CAM-05" },
+  { id: "london-kings-cross",       label: "London — Kings Cross",              city: "London",      country: "GB", camCode: "CAM-05" },
   // Singapore (data.gov.sg — 5 cameras)
   { id: "singapore-sle-1006",       label: "Singapore — SLE Mandai",             city: "Singapore",   country: "SG", camCode: "CAM-06" },
   { id: "singapore-bke-1003",       label: "Singapore — BKE Dairy Farm",         city: "Singapore",   country: "SG", camCode: "CAM-07" },
@@ -37,7 +37,7 @@ const CAMERAS: CamInfo[] = [
   { id: "singapore-pie-1005",       label: "Singapore — PIE Clementi",           city: "Singapore",   country: "SG", camCode: "CAM-14" },
   // Los Angeles (Caltrans D7)
   { id: "la-i110-cypress",          label: "Los Angeles — I-110 Cypress Park",   city: "Los Angeles", country: "US", camCode: "CAM-09" },
-  { id: "la-i5-slauson",            label: "Los Angeles — I-5 @ Slauson",        city: "Los Angeles", country: "US", camCode: "CAM-10" },
+  { id: "la-i5-meadowdale",          label: "Los Angeles — I-5 Meadowdale",       city: "Los Angeles", country: "US", camCode: "CAM-10" },
   { id: "la-i5-south-i10",          label: "Los Angeles — I-5 South of I-10",    city: "Los Angeles", country: "US", camCode: "CAM-11" },
   // Hong Kong (data.one.gov.hk — verified IDs)
   { id: "hk-tsing-yi",              label: "Hong Kong — Tsing Yi Bridge",        city: "Hong Kong",   country: "HK", camCode: "CAM-15" },

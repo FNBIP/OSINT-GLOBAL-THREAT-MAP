@@ -16,7 +16,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [1.50, 52.00], [3.50, 53.00], [7.00, 54.00], [9.50, 55.50],
         ],
       },
-      properties: { name: "TAT-14", length_km: 15428, landing_points: "Manasquan NJ, Blaabjerg DK, Norden DE, Katwijk NL, St Valery FR, Bude UK", rfs_year: 2001, owners: "TAT-14 Consortium", capacity: "3.2 Tbps" },
+      properties: { name: "TAT-14", length_km: 15428, landing_points: "Manasquan NJ, Blaabjerg DK, Norden DE, Katwijk NL, St Valery FR, Bude UK", rfs_year: 2001, owners: "TAT-14 Consortium", capacity: "3.2 Tbps", status: "decommissioned" },
     },
     // 2. MAREA (Virginia Beach → Bilbao, Spain)
     {
@@ -28,7 +28,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-25.00, 42.50], [-15.00, 43.20], [-8.00, 43.50], [-2.93, 43.26],
         ],
       },
-      properties: { name: "MAREA", length_km: 6605, landing_points: "Virginia Beach US, Bilbao ES", rfs_year: 2018, owners: "Microsoft / Facebook / Telxius", capacity: "200 Tbps" },
+      properties: { name: "MAREA", length_km: 6605, landing_points: "Virginia Beach US, Bilbao ES", rfs_year: 2018, owners: "Microsoft / Facebook / Telxius", capacity: "200 Tbps", status: "active" },
     },
     // 3. FASTER (Oregon → Japan)
     {
@@ -41,9 +41,9 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [145.00, 37.00], [140.50, 35.50], [139.75, 35.30],
         ],
       },
-      properties: { name: "FASTER", length_km: 11629, landing_points: "Bandon OR US, Chikura JP, Shima JP", rfs_year: 2016, owners: "Google / China Mobile / KDDI / SingTel / others", capacity: "60 Tbps" },
+      properties: { name: "FASTER", length_km: 11629, landing_points: "Bandon OR US, Chikura JP, Shima JP", rfs_year: 2016, owners: "Google / China Mobile / KDDI / SingTel / others", capacity: "60 Tbps", status: "active" },
     },
-    // 4. SEA-ME-WE 3 (SE Asia → Middle East → W. Europe)
+    // 4. SEA-ME-WE 3 (SE Asia → Middle East → W. Europe) — aging system with multiple historical cuts
     {
       type: "Feature",
       geometry: {
@@ -56,7 +56,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [3.00, 39.00], [-2.00, 40.00], [-5.00, 43.00], [-3.50, 48.50],
         ],
       },
-      properties: { name: "SEA-ME-WE 3", length_km: 39000, landing_points: "33 landing points across SE Asia, Middle East, W. Europe", rfs_year: 1999, owners: "SEA-ME-WE 3 Consortium", capacity: "480 Gbps" },
+      properties: { name: "SEA-ME-WE 3", length_km: 39000, landing_points: "33 landing points across SE Asia, Middle East, W. Europe", rfs_year: 1999, owners: "SEA-ME-WE 3 Consortium", capacity: "480 Gbps", status: "degraded" },
     },
     // 5. SEA-ME-WE 5 (Singapore → France)
     {
@@ -70,9 +70,9 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [25.00, 34.00], [15.00, 37.00], [8.00, 39.50], [3.50, 43.30],
         ],
       },
-      properties: { name: "SEA-ME-WE 5", length_km: 20000, landing_points: "Singapore, Sri Lanka, Djibouti, Saudi Arabia, Egypt, Italy, France + more", rfs_year: 2017, owners: "SEA-ME-WE 5 Consortium", capacity: "24 Tbps" },
+      properties: { name: "SEA-ME-WE 5", length_km: 20000, landing_points: "Singapore, Sri Lanka, Djibouti, Saudi Arabia, Egypt, Italy, France + more", rfs_year: 2017, owners: "SEA-ME-WE 5 Consortium", capacity: "24 Tbps", status: "active" },
     },
-    // 6. FLAG Europe-Asia (UK → Japan via Med/Red Sea/Indian Ocean)
+    // 6. FLAG Europe-Asia (UK → Japan via Med/Red Sea/Indian Ocean) — Red Sea segment damaged by Houthi anchoring 2024
     {
       type: "Feature",
       geometry: {
@@ -86,7 +86,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [140.00, 35.00],
         ],
       },
-      properties: { name: "FLAG Europe-Asia (FEA)", length_km: 28000, landing_points: "UK, Spain, Italy, Egypt, UAE, India, Malaysia, HK, Japan + more", rfs_year: 1997, owners: "Global Cloud Xchange", capacity: "10 Tbps" },
+      properties: { name: "FLAG Europe-Asia (FEA)", length_km: 28000, landing_points: "UK, Spain, Italy, Egypt, UAE, India, Malaysia, HK, Japan + more", rfs_year: 1997, owners: "Global Cloud Xchange", capacity: "10 Tbps", status: "damaged" },
     },
     // 7. Apollo (US → UK/France)
     {
@@ -98,7 +98,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-20.00, 50.50], [-10.00, 50.50], [-5.20, 50.30],
         ],
       },
-      properties: { name: "Apollo", length_km: 12874, landing_points: "Manasquan NJ US, Bude UK, Lannion FR", rfs_year: 2003, owners: "Apollo Submarine Cable / Vodafone", capacity: "3.2 Tbps" },
+      properties: { name: "Apollo", length_km: 12874, landing_points: "Manasquan NJ US, Bude UK, Lannion FR", rfs_year: 2003, owners: "Apollo Submarine Cable / Vodafone", capacity: "3.2 Tbps", status: "active" },
     },
     // 8. AEConnect-1 (US → Ireland)
     {
@@ -110,7 +110,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-18.00, 52.00], [-10.00, 51.80],
         ],
       },
-      properties: { name: "AEConnect-1", length_km: 5536, landing_points: "Shirley NY US, Killala IE", rfs_year: 2016, owners: "Aqua Comms", capacity: "52 Tbps" },
+      properties: { name: "AEConnect-1", length_km: 5536, landing_points: "Shirley NY US, Killala IE", rfs_year: 2016, owners: "Aqua Comms", capacity: "52 Tbps", status: "active" },
     },
     // 9. Hibernia Express (US → UK)
     {
@@ -122,7 +122,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-18.00, 52.50], [-10.00, 52.00], [-5.80, 51.00],
         ],
       },
-      properties: { name: "Hibernia Express", length_km: 4600, landing_points: "Halifax NS CA, Brean UK", rfs_year: 2015, owners: "GTT Communications", capacity: "53 Tbps" },
+      properties: { name: "Hibernia Express", length_km: 4600, landing_points: "Halifax NS CA, Brean UK", rfs_year: 2015, owners: "GTT Communications", capacity: "53 Tbps", status: "active" },
     },
     // 10. PEACE (Pakistan → France via Egypt/Kenya)
     {
@@ -136,7 +136,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [25.00, 34.00], [15.00, 37.50], [5.00, 41.50], [3.30, 43.20],
         ],
       },
-      properties: { name: "PEACE Cable", length_km: 15000, landing_points: "Rawalpindi PK, Djibouti, Mombasa KE, Suez/Zafarana EG, Marseille FR", rfs_year: 2022, owners: "PEACE Cable International", capacity: "96 Tbps" },
+      properties: { name: "PEACE Cable", length_km: 15000, landing_points: "Rawalpindi PK, Djibouti, Mombasa KE, Suez/Zafarana EG, Marseille FR", rfs_year: 2022, owners: "PEACE Cable International", capacity: "96 Tbps", status: "active" },
     },
     // 11. 2Africa (circumnavigating Africa)
     {
@@ -154,7 +154,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [1.50, 41.30],
         ],
       },
-      properties: { name: "2Africa", length_km: 45000, landing_points: "46 landing points across Africa, Middle East, Europe", rfs_year: 2024, owners: "Meta / MTN / Vodafone / China Mobile / Orange + more", capacity: "180 Tbps" },
+      properties: { name: "2Africa", length_km: 45000, landing_points: "46 landing points across Africa, Middle East, Europe", rfs_year: 2024, owners: "Meta / MTN / Vodafone / China Mobile / Orange + more", capacity: "180 Tbps", status: "active" },
     },
     // 12. Equiano (Portugal → South Africa)
     {
@@ -167,7 +167,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [12.00, -4.30], [13.00, -15.00], [14.00, -22.50], [18.40, -33.90],
         ],
       },
-      properties: { name: "Equiano", length_km: 15000, landing_points: "Lisbon PT, Lagos NG, Swakopmund NA, Cape Town ZA + more", rfs_year: 2023, owners: "Google", capacity: "144 Tbps" },
+      properties: { name: "Equiano", length_km: 15000, landing_points: "Lisbon PT, Lagos NG, Swakopmund NA, Cape Town ZA + more", rfs_year: 2023, owners: "Google", capacity: "144 Tbps", status: "active" },
     },
     // 13. EllaLink (Portugal/Spain → Brazil)
     {
@@ -179,7 +179,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-32.00, 10.00], [-35.00, 2.00], [-34.87, -7.12],
         ],
       },
-      properties: { name: "EllaLink", length_km: 10000, landing_points: "Sines PT, Madrid ES, Fortaleza BR, Sao Paulo BR", rfs_year: 2021, owners: "EllaLink / Marguerite Fund", capacity: "100 Tbps" },
+      properties: { name: "EllaLink", length_km: 10000, landing_points: "Sines PT, Madrid ES, Fortaleza BR, Sao Paulo BR", rfs_year: 2021, owners: "EllaLink / Marguerite Fund", capacity: "100 Tbps", status: "active" },
     },
     // 14. BRUSA (US → Brazil)
     {
@@ -191,7 +191,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-50.00, 2.00], [-43.17, -22.91],
         ],
       },
-      properties: { name: "BRUSA", length_km: 10556, landing_points: "Virginia Beach US, Fortaleza BR, Rio de Janeiro BR", rfs_year: 2018, owners: "Telxius", capacity: "138 Tbps" },
+      properties: { name: "BRUSA", length_km: 10556, landing_points: "Virginia Beach US, Fortaleza BR, Rio de Janeiro BR", rfs_year: 2018, owners: "Telxius", capacity: "138 Tbps", status: "active" },
     },
     // 15. SAex1 (South Africa → Malaysia)
     {
@@ -204,9 +204,9 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [95.00, 3.00], [101.70, 3.10],
         ],
       },
-      properties: { name: "SAex1 (South Africa Far East)", length_km: 13000, landing_points: "Mtunzini ZA, Maputo MZ, Dar es Salaam TZ, Melkbosstrand ZA, Penang MY", rfs_year: 2018, owners: "Openserve / others", capacity: "12.8 Tbps" },
+      properties: { name: "SAex1 (South Africa Far East)", length_km: 13000, landing_points: "Mtunzini ZA, Maputo MZ, Dar es Salaam TZ, Melkbosstrand ZA, Penang MY", rfs_year: 2018, owners: "Openserve / others", capacity: "12.8 Tbps", status: "active" },
     },
-    // 16. AAE-1 (SE Asia → Europe via Egypt)
+    // 16. AAE-1 (SE Asia → Europe via Egypt) — Red Sea segment damaged 2024
     {
       type: "Feature",
       geometry: {
@@ -218,9 +218,9 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [25.00, 35.00], [14.00, 37.50], [5.00, 43.30],
         ],
       },
-      properties: { name: "AAE-1 (Asia-Africa-Europe 1)", length_km: 25000, landing_points: "HK, Vietnam, Cambodia, Malaysia, Singapore, India, Oman, Djibouti, Egypt, Greece, Italy, France", rfs_year: 2017, owners: "AAE-1 Consortium", capacity: "40 Tbps" },
+      properties: { name: "AAE-1 (Asia-Africa-Europe 1)", length_km: 25000, landing_points: "HK, Vietnam, Cambodia, Malaysia, Singapore, India, Oman, Djibouti, Egypt, Greece, Italy, France", rfs_year: 2017, owners: "AAE-1 Consortium", capacity: "40 Tbps", status: "damaged" },
     },
-    // 17. PLCN (Pacific Light Cable Network, US → HK/Philippines)
+    // 17. PLCN (Pacific Light Cable Network, US → Philippines — originally to HK, rerouted)
     {
       type: "Feature",
       geometry: {
@@ -230,7 +230,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [180.00, 24.00], [160.00, 22.00], [140.00, 20.00], [121.50, 16.50],
         ],
       },
-      properties: { name: "PLCN (Pacific Light Cable Network)", length_km: 12800, landing_points: "El Segundo CA US, Luzon PH", rfs_year: 2023, owners: "Google / Facebook", capacity: "144 Tbps" },
+      properties: { name: "PLCN (Pacific Light Cable Network)", length_km: 12800, landing_points: "El Segundo CA US, Luzon PH", rfs_year: 2023, owners: "Google / Facebook", capacity: "144 Tbps", status: "active" },
     },
     // 18. Curie (US → Chile)
     {
@@ -242,7 +242,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-92.00, 0.00], [-84.00, -8.00], [-78.00, -18.00], [-71.63, -33.04],
         ],
       },
-      properties: { name: "Curie", length_km: 10476, landing_points: "Los Angeles US, Valparaiso CL", rfs_year: 2019, owners: "Google", capacity: "72 Tbps" },
+      properties: { name: "Curie", length_km: 10476, landing_points: "Los Angeles US, Valparaiso CL", rfs_year: 2019, owners: "Google", capacity: "72 Tbps", status: "active" },
     },
     // 19. Junior (Brazil → US via Puerto Rico)
     {
@@ -255,7 +255,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-75.00, 25.50], [-80.00, 28.00],
         ],
       },
-      properties: { name: "Junior", length_km: 7500, landing_points: "Rio de Janeiro BR, Fortaleza BR, San Juan PR, Jacksonville US", rfs_year: 2020, owners: "GlobeNet / Lumen", capacity: "100 Tbps" },
+      properties: { name: "Junior", length_km: 7500, landing_points: "Rio de Janeiro BR, Fortaleza BR, San Juan PR, Jacksonville US", rfs_year: 2020, owners: "GlobeNet / Lumen", capacity: "100 Tbps", status: "active" },
     },
     // 20. Dunant (US → France)
     {
@@ -267,7 +267,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-20.00, 48.00], [-10.00, 48.20], [-4.00, 47.80], [-2.50, 48.00],
         ],
       },
-      properties: { name: "Dunant", length_km: 6400, landing_points: "Virginia Beach US, Saint-Hilaire-de-Riez FR", rfs_year: 2020, owners: "Google", capacity: "250 Tbps" },
+      properties: { name: "Dunant", length_km: 6400, landing_points: "Virginia Beach US, Saint-Hilaire-de-Riez FR", rfs_year: 2020, owners: "Google", capacity: "250 Tbps", status: "active" },
     },
     // 21. Grace Hopper (US → UK/Spain)
     {
@@ -280,7 +280,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-15.00, 48.00], [-10.00, 44.50], [-3.00, 43.30],
         ],
       },
-      properties: { name: "Grace Hopper", length_km: 6234, landing_points: "New York US, Bude UK, Bilbao ES", rfs_year: 2022, owners: "Google", capacity: "340 Tbps" },
+      properties: { name: "Grace Hopper", length_km: 6234, landing_points: "New York US, Bude UK, Bilbao ES", rfs_year: 2022, owners: "Google", capacity: "340 Tbps", status: "active" },
     },
     // 22. Havfrue/AEC-2 (US → Denmark/Norway/Ireland)
     {
@@ -293,7 +293,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [8.00, 56.50], [9.50, 55.50],
         ],
       },
-      properties: { name: "Havfrue/AEC-2", length_km: 7860, landing_points: "Wall NJ US, Blaabjerg DK, Kristiansand NO, Killala IE", rfs_year: 2020, owners: "Google / Aqua Comms / Bulk Infrastructure", capacity: "108 Tbps" },
+      properties: { name: "Havfrue/AEC-2", length_km: 7860, landing_points: "Wall NJ US, Blaabjerg DK, Kristiansand NO, Killala IE", rfs_year: 2020, owners: "Google / Aqua Comms / Bulk Infrastructure", capacity: "108 Tbps", status: "active" },
     },
     // 23. Japan-US Cable Network
     {
@@ -306,7 +306,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [145.00, 35.50], [140.00, 35.00],
         ],
       },
-      properties: { name: "Japan-US Cable Network (JUS)", length_km: 21000, landing_points: "San Francisco US, Los Angeles US, Shima JP, Maruyama JP", rfs_year: 2001, owners: "JUS Partners", capacity: "7.68 Tbps" },
+      properties: { name: "Japan-US Cable Network (JUS)", length_km: 21000, landing_points: "San Francisco US, Los Angeles US, Shima JP, Maruyama JP", rfs_year: 2001, owners: "JUS Partners", capacity: "7.68 Tbps", status: "active" },
     },
     // 24. Southern Cross Cable (US → Australia/NZ/Fiji)
     {
@@ -321,7 +321,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [151.21, -33.87],
         ],
       },
-      properties: { name: "Southern Cross Cable (SCCN)", length_km: 30500, landing_points: "Los Angeles US, Suva FJ, Auckland NZ, Sydney AU", rfs_year: 2000, owners: "Southern Cross Cables Ltd / Spark / Verizon / Telstra", capacity: "22 Tbps" },
+      properties: { name: "Southern Cross Cable (SCCN)", length_km: 30500, landing_points: "Los Angeles US, Suva FJ, Auckland NZ, Sydney AU", rfs_year: 2000, owners: "Southern Cross Cables Ltd / Spark / Verizon / Telstra", capacity: "22 Tbps", status: "active" },
     },
     // 25. TGN-Pacific (US → Japan)
     {
@@ -333,7 +333,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [170.00, 41.00], [155.00, 38.00], [140.00, 35.60],
         ],
       },
-      properties: { name: "TGN-Pacific", length_km: 10000, landing_points: "Nedonna Beach OR US, Shima JP", rfs_year: 2002, owners: "Telia Carrier", capacity: "7.68 Tbps" },
+      properties: { name: "TGN-Pacific", length_km: 10000, landing_points: "Nedonna Beach OR US, Shima JP", rfs_year: 2002, owners: "Telia Carrier", capacity: "7.68 Tbps", status: "active" },
     },
     // 26. Unity (US → Japan)
     {
@@ -345,7 +345,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [180.00, 30.00], [165.00, 30.50], [150.00, 32.00], [140.00, 34.50],
         ],
       },
-      properties: { name: "Unity", length_km: 10000, landing_points: "Redondo Beach CA US, Chikura JP", rfs_year: 2010, owners: "Google / KDDI / Bharti Airtel + others", capacity: "7.68 Tbps" },
+      properties: { name: "Unity", length_km: 10000, landing_points: "Redondo Beach CA US, Chikura JP", rfs_year: 2010, owners: "Google / KDDI / Bharti Airtel + others", capacity: "7.68 Tbps", status: "active" },
     },
     // 27. AJC (Australia → Japan via Guam)
     {
@@ -358,7 +358,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [140.00, 20.00], [137.00, 28.00], [135.00, 33.50], [133.50, 34.40],
         ],
       },
-      properties: { name: "AJC (Australia-Japan Cable)", length_km: 12700, landing_points: "Sydney AU, Guam, Maruyama JP", rfs_year: 2001, owners: "Telstra / NTT / KDD + others", capacity: "4.8 Tbps" },
+      properties: { name: "AJC (Australia-Japan Cable)", length_km: 12700, landing_points: "Sydney AU, Guam, Maruyama JP", rfs_year: 2001, owners: "Telstra / NTT / KDD + others", capacity: "4.8 Tbps", status: "active" },
     },
     // 28. EAC-C2C (Singapore → Japan)
     {
@@ -371,7 +371,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [124.00, 28.00], [128.00, 31.00], [132.00, 33.00], [135.00, 35.00],
         ],
       },
-      properties: { name: "EAC-C2C", length_km: 7800, landing_points: "Singapore, Philippines, HK, Taiwan, Korea, Japan", rfs_year: 2002, owners: "EAC Pacific Consortium", capacity: "17.92 Tbps" },
+      properties: { name: "EAC-C2C", length_km: 7800, landing_points: "Singapore, Philippines, HK, Taiwan, Korea, Japan", rfs_year: 2002, owners: "EAC Pacific Consortium", capacity: "17.92 Tbps", status: "active" },
     },
     // 29. MainOne (Portugal → Nigeria)
     {
@@ -383,7 +383,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [-13.00, 8.00], [-5.00, 5.50], [2.10, 6.30], [3.40, 6.45],
         ],
       },
-      properties: { name: "MainOne", length_km: 7000, landing_points: "Seixal PT, Accra GH, Lagos NG", rfs_year: 2010, owners: "MainOne (Equinix)", capacity: "10 Tbps" },
+      properties: { name: "MainOne", length_km: 7000, landing_points: "Seixal PT, Accra GH, Lagos NG", rfs_year: 2010, owners: "MainOne (Equinix)", capacity: "10 Tbps", status: "active" },
     },
     // 30. WACS (UK → South Africa via West Africa)
     {
@@ -398,7 +398,7 @@ const CABLES_DATA: GeoJSON.FeatureCollection = {
           [18.40, -33.90],
         ],
       },
-      properties: { name: "WACS (West Africa Cable System)", length_km: 14530, landing_points: "UK, Portugal, Canary Islands, Senegal, Ghana, Nigeria, Cameroon, Congo, Angola, Namibia, South Africa", rfs_year: 2012, owners: "WACS Consortium (MTN / Vodacom / Togo Telecom + more)", capacity: "14.5 Tbps" },
+      properties: { name: "WACS (West Africa Cable System)", length_km: 14530, landing_points: "UK, Portugal, Canary Islands, Senegal, Ghana, Nigeria, Cameroon, Congo, Angola, Namibia, South Africa", rfs_year: 2012, owners: "WACS Consortium (MTN / Vodacom / Togo Telecom + more)", capacity: "14.5 Tbps", status: "active" },
     },
   ],
 };

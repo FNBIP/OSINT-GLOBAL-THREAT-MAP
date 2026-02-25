@@ -236,9 +236,9 @@ export async function GET(request: Request) {
 
     type ValyuResult = Awaited<ReturnType<typeof searchEvents>>;
 
-    // Wrap Valyu in a hard 8s timeout — if it's slow, fall back to free sources
+    // Wrap Valyu in a hard 20s timeout — allows for retry logic (up to 2 retries with backoff)
     const valyuTimeout = new Promise<ValyuResult[]>((_, reject) =>
-      setTimeout(() => reject(new Error("Valyu timeout")), 8000)
+      setTimeout(() => reject(new Error("Valyu timeout")), 20000)
     );
 
     // Fetch from ALL sources in parallel
@@ -349,9 +349,9 @@ export async function POST(request: Request) {
 
     type ValyuResult2 = Awaited<ReturnType<typeof searchEvents>>;
 
-    // Fetch from ALL sources in parallel (Valyu with 8s timeout)
+    // Fetch from ALL sources in parallel (Valyu with 20s timeout — allows for retry logic)
     const valyuTimeout2 = new Promise<ValyuResult2[]>((_, reject) =>
-      setTimeout(() => reject(new Error("Valyu timeout")), 8000)
+      setTimeout(() => reject(new Error("Valyu timeout")), 20000)
     );
 
     const [valyuResults, gdeltEvents, eonetEvents] = await Promise.all([
