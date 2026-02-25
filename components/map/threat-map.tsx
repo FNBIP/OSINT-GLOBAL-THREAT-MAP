@@ -380,6 +380,85 @@ const satelliteLabelLayer: LayerProps = {
   },
 };
 
+// ── Cables layer ─────────────────────────────────────────────────────────────
+const cablesLineLayer: LayerProps = {
+  id: "cables-layer",
+  type: "line",
+  paint: {
+    "line-color": "#00ccff",
+    "line-width": 1.5,
+    "line-opacity": 0.7,
+    "line-dasharray": [4, 2],
+  },
+};
+
+const cablesLabelLayer: LayerProps = {
+  id: "cables-labels",
+  type: "symbol",
+  layout: {
+    "symbol-placement": "line",
+    "text-field": ["get", "name"],
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 9,
+    "text-offset": [0, 0.8],
+    "text-anchor": "center",
+    "text-max-angle": 30,
+  },
+  paint: {
+    "text-color": "#00ccff",
+    "text-halo-color": "#000000",
+    "text-halo-width": 1,
+    "text-opacity": 0.6,
+  },
+};
+
+// ── Pipelines layer ──────────────────────────────────────────────────────────
+const pipelinesLineLayer: LayerProps = {
+  id: "pipelines-layer",
+  type: "line",
+  paint: {
+    "line-color": [
+      "match", ["get", "status"],
+      "damaged", "#ef4444",
+      "planned", "#eab308",
+      "suspended", "#888888",
+      "#ff9900",
+    ],
+    "line-width": [
+      "match", ["get", "type"],
+      "oil", 2.5,
+      "gas", 2,
+      2,
+    ],
+    "line-opacity": [
+      "match", ["get", "status"],
+      "damaged", 0.6,
+      "planned", 0.4,
+      0.75,
+    ],
+  },
+};
+
+const pipelinesLabelLayer: LayerProps = {
+  id: "pipelines-labels",
+  type: "symbol",
+  layout: {
+    "symbol-placement": "line",
+    "text-field": ["get", "name"],
+    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 9,
+    "text-offset": [0, 0.8],
+    "text-anchor": "center",
+    "text-max-angle": 30,
+  },
+  paint: {
+    "text-color": "#ff9900",
+    "text-halo-color": "#000000",
+    "text-halo-width": 1,
+    "text-opacity": 0.6,
+  },
+};
+
 // ── Mapbox built-in traffic layers ──────────────────────────────────────────
 // These reference Mapbox's own traffic tile source (no extra API needed)
 const trafficFlowLayer: LayerProps = {
@@ -455,6 +534,28 @@ interface SelectedSatellite {
   alt: number;
 }
 
+interface SelectedCable {
+  longitude: number;
+  latitude: number;
+  name: string;
+  length_km: number;
+  landing_points: string;
+  rfs_year: number;
+  owners: string;
+  capacity: string;
+}
+
+interface SelectedPipeline {
+  longitude: number;
+  latitude: number;
+  name: string;
+  pipeType: string;
+  length_km: number;
+  capacity: string;
+  operator: string;
+  status: string;
+}
+
 export function ThreatMap() {
   const mapRef = useRef<MapRef>(null);
   const {
@@ -489,6 +590,10 @@ export function ThreatMap() {
   const [aircraft, setAircraft] = useState<AircraftState[]>([]);
   const [satellites, setSatellites] = useState<SatellitePosition[]>([]);
   const [vessels, setVessels] = useState<VesselState[]>([]);
+  const [cablesGeoJSON, setCablesGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [pipelinesGeoJSON, setPipelinesGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [selectedCable, setSelectedCable] = useState<SelectedCable | null>(null);
+  const [selectedPipeline, setSelectedPipeline] = useState<SelectedPipeline | null>(null);
 
   const requiresAuth = APP_MODE === "valyu";
 
@@ -569,6 +674,38 @@ export function ThreatMap() {
     const interval = setInterval(fetchVessels, 60000); // refresh every 60s
     return () => { cancelled = true; clearInterval(interval); };
   }, [layers.ais]);
+
+  // Fetch submarine cables when layer is active
+  useEffect(() => {
+    if (!layers.cables) { setCablesGeoJSON(null); return; }
+    let cancelled = false;
+    async function fetchCables() {
+      try {
+        const res = await fetch("/api/cables");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setCablesGeoJSON(data);
+      } catch { /* silent */ }
+    }
+    fetchCables();
+    return () => { cancelled = true; };
+  }, [layers.cables]);
+
+  // Fetch pipelines when layer is active
+  useEffect(() => {
+    if (!layers.pipelines) { setPipelinesGeoJSON(null); return; }
+    let cancelled = false;
+    async function fetchPipelines() {
+      try {
+        const res = await fetch("/api/pipelines");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setPipelinesGeoJSON(data);
+      } catch { /* silent */ }
+    }
+    fetchPipelines();
+    return () => { cancelled = true; };
+  }, [layers.pipelines]);
 
   // Blinking effect for selected country while loading
   useEffect(() => {
@@ -818,6 +955,38 @@ export function ThreatMap() {
           selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
           setSelectedVessel(null); setSelectedFlight(null);
           return;
+        } else if (layerId === "cables-layer") {
+          const coords = event.lngLat;
+          setSelectedCable({
+            longitude: coords.lng,
+            latitude: coords.lat,
+            name: feature.properties?.name || "Unknown Cable",
+            length_km: feature.properties?.length_km ?? 0,
+            landing_points: feature.properties?.landing_points || "—",
+            rfs_year: feature.properties?.rfs_year ?? 0,
+            owners: feature.properties?.owners || "—",
+            capacity: feature.properties?.capacity || "—",
+          });
+          selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
+          setSelectedVessel(null); setSelectedFlight(null); setSelectedSatellite(null);
+          setSelectedPipeline(null);
+          return;
+        } else if (layerId === "pipelines-layer") {
+          const coords = event.lngLat;
+          setSelectedPipeline({
+            longitude: coords.lng,
+            latitude: coords.lat,
+            name: feature.properties?.name || "Unknown Pipeline",
+            pipeType: feature.properties?.type || "—",
+            length_km: feature.properties?.length_km ?? 0,
+            capacity: feature.properties?.capacity || "—",
+            operator: feature.properties?.operator || "—",
+            status: feature.properties?.status || "active",
+          });
+          selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
+          setSelectedVessel(null); setSelectedFlight(null); setSelectedSatellite(null);
+          setSelectedCable(null);
+          return;
         }
       }
 
@@ -828,6 +997,8 @@ export function ThreatMap() {
       setSelectedVessel(null);
       setSelectedFlight(null);
       setSelectedSatellite(null);
+      setSelectedCable(null);
+      setSelectedPipeline(null);
 
       const { lng, lat } = event.lngLat;
 
@@ -949,6 +1120,8 @@ export function ThreatMap() {
               "flights-layer",
               "flights-layer-nvg",
               "satellites-layer",
+              "cables-layer",
+              "pipelines-layer",
             ]}
             onClick={handleMapClick}
             onMouseEnter={handleMouseEnter}
@@ -1331,6 +1504,96 @@ export function ThreatMap() {
         >
           <Layer {...trafficFlowLayer} />
         </Source>
+      )}
+
+      {/* Submarine cables layer */}
+      {layers.cables && cablesGeoJSON && (
+        <Source id="cables" type="geojson" data={cablesGeoJSON}>
+          <Layer {...cablesLineLayer} />
+          <Layer {...cablesLabelLayer} />
+        </Source>
+      )}
+
+      {/* Pipelines layer */}
+      {layers.pipelines && pipelinesGeoJSON && (
+        <Source id="pipelines" type="geojson" data={pipelinesGeoJSON}>
+          <Layer {...pipelinesLineLayer} />
+          <Layer {...pipelinesLabelLayer} />
+        </Source>
+      )}
+
+      {/* ── Cable popup ── */}
+      {selectedCable && (
+        <Popup
+          longitude={selectedCable.longitude}
+          latitude={selectedCable.latitude}
+          anchor="bottom"
+          onClose={() => setSelectedCable(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="threat-popup"
+        >
+          <div className="min-w-[220px] p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
+                <span className="text-cyan-400 text-sm">〰</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{selectedCable.name}</h3>
+                <span className="text-xs text-cyan-400">Submarine Cable</span>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between"><span>Capacity</span><span className="text-foreground">{selectedCable.capacity}</span></div>
+              <div className="flex justify-between"><span>Length</span><span className="text-foreground">{selectedCable.length_km.toLocaleString()} km</span></div>
+              <div className="flex justify-between"><span>RFS Year</span><span className="text-foreground">{selectedCable.rfs_year}</span></div>
+              <div className="flex justify-between"><span>Owners</span><span className="text-foreground text-right max-w-[140px] truncate">{selectedCable.owners}</span></div>
+              <div className="pt-1 text-[10px] text-muted-foreground/60 leading-tight">{selectedCable.landing_points}</div>
+            </div>
+          </div>
+        </Popup>
+      )}
+
+      {/* ── Pipeline popup ── */}
+      {selectedPipeline && (
+        <Popup
+          longitude={selectedPipeline.longitude}
+          latitude={selectedPipeline.latitude}
+          anchor="bottom"
+          onClose={() => setSelectedPipeline(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="threat-popup"
+        >
+          <div className="min-w-[220px] p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                selectedPipeline.status === "damaged" ? "bg-red-500/20" :
+                selectedPipeline.status === "planned" ? "bg-yellow-500/20" :
+                "bg-orange-500/20"
+              }`}>
+                <span className={`text-sm ${
+                  selectedPipeline.status === "damaged" ? "text-red-400" :
+                  selectedPipeline.status === "planned" ? "text-yellow-400" :
+                  "text-orange-400"
+                }`}>⬤</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{selectedPipeline.name}</h3>
+                <span className={`text-xs ${
+                  selectedPipeline.status === "damaged" ? "text-red-400" :
+                  selectedPipeline.status === "planned" ? "text-yellow-400" :
+                  "text-orange-400"
+                }`}>{selectedPipeline.pipeType.toUpperCase()} Pipeline — {selectedPipeline.status.toUpperCase()}</span>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between"><span>Capacity</span><span className="text-foreground">{selectedPipeline.capacity}</span></div>
+              <div className="flex justify-between"><span>Length</span><span className="text-foreground">{selectedPipeline.length_km.toLocaleString()} km</span></div>
+              <div className="flex justify-between"><span>Operator</span><span className="text-foreground text-right max-w-[140px] truncate">{selectedPipeline.operator}</span></div>
+            </div>
+          </div>
+        </Popup>
       )}
 
       <CountryConflictsModal

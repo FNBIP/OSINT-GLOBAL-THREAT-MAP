@@ -3,7 +3,7 @@
 import { useEventsStore } from "@/stores/events-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, RefreshCw, Activity, HelpCircle, Map, LayoutGrid } from "lucide-react";
+import { Globe, RefreshCw, Activity, HelpCircle, Map, LayoutGrid, Search } from "lucide-react";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -117,6 +117,36 @@ export function Header({ onRefresh, isLoading, onShowHelp, view, onViewChange }:
           )}
           <Badge variant="outline">{filteredEvents.length} Events</Badge>
         </div>
+
+        <button
+          onClick={() => {
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+          }}
+          title="Search (⌘K)"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            borderRadius: 5,
+            border: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(255,255,255,0.03)",
+            color: "rgba(255,255,255,0.4)",
+            cursor: "pointer",
+            fontSize: 11,
+            fontFamily: "monospace",
+          }}
+        >
+          <Search style={{ width: 12, height: 12 }} />
+          <span>Search</span>
+          <kbd style={{
+            fontSize: 9,
+            padding: "1px 4px",
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}>⌘K</kbd>
+        </button>
 
         <Button
           variant="ghost"

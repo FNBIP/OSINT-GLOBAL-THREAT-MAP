@@ -12,6 +12,7 @@ import { WelcomeModal } from "@/components/welcome-modal";
 import { SignInPanel } from "@/components/auth";
 import { ThreatMarketsPanel, THREAT_MARKETS_PANEL_HEIGHT } from "@/components/threat-markets-panel";
 import { DashboardGrid } from "@/components/panels/dashboard-grid";
+import { CommandSearch } from "@/components/search/command-search";
 import { Map, LayoutGrid } from "lucide-react";
 
 const WELCOME_DISMISSED_KEY = "globalthreatmap_welcome_dismissed";
@@ -59,6 +60,7 @@ export default function Home() {
       <WelcomeModal open={showWelcome} onOpenChange={setShowWelcome} />
       <SignInPanel />
       <ThreatMarketsPanel />
+      <CommandSearch />
     </div>
   );
 }
