@@ -2,12 +2,7 @@
 
 A real-time global situational awareness platform that plots security events, geopolitical developments, and threat indicators on an interactive map. Think of it as an OSINT (Open Source Intelligence) command center.
 
-![Global Threat Map](assets/osint-global-threat-map.png)
-
-<!-- Add your screenshots here -->
-<!-- ![Global Threat Map](screenshot-url-here) -->
-<!-- ![Country Conflicts](screenshot-url-here) -->
-<!-- ![Intel Dossier](screenshot-url-here) -->
+![Global Threat Map](screenshot.png)
 
 ## Features
 
@@ -51,12 +46,62 @@ Built-in encrypted chat powered by the Nostr protocol and BitChat geohash channe
 - **BitChat Protocol Compatible** - Uses kind 20000 (ephemeral geohash), kind 23333 (standard channel), and kind 1 events — fully interoperable with [bitchat.land](https://bitchat.land)
 - **Relay Management** - Add/remove relays, view connection status, supports `.onion` addresses for Tor
 
+### Submarine Cables & Pipelines
+
+Real-time infrastructure intelligence layer:
+
+- **30 Major Submarine Cables** - Visualize the global undersea fiber optic network connecting continents
+- **Cable Status Indicators** - Color-coded by operational status: cyan (active), red (damaged), yellow (degraded), gray (decommissioned)
+- **25 Major Pipelines** - Oil and gas pipeline routes with status coloring (active, damaged, planned)
+- **Click-to-Inspect** - Click any cable or pipeline for detailed popup with capacity, length, owners, landing points, and status badge
+- **Real-World Status** - FLAG Europe-Asia and AAE-1 marked as damaged (Red Sea cuts 2024), SEA-ME-WE 3 as degraded, TAT-14 as decommissioned
+
+### Command Palette (Cmd+K)
+
+Global search across the entire platform:
+
+- **Keyboard Shortcut** - Press `Cmd+K` (Mac) or `Ctrl+K` (Windows) to open
+- **Search Everything** - Events, news, 20 strategic cities, 17 map layers, military bases
+- **Keyboard Navigation** - Arrow keys, Enter to select, Esc to close
+- **Grouped Results** - Results organized by category for quick scanning
+
+### 7-Day Timeline Bar
+
+Event density visualization across time:
+
+- **Event Density Bars** - Visual histogram of event distribution over the past 7 days
+- **Severity Coloring** - Bars colored by dominant threat level
+- **Time Presets** - Quick filter: 1H, 6H, 24H, 48H, 7D, ALL
+- **Auto-Pan Integration** - Play/pause to pan across the globe automatically
+
+### Country Instability Index (CII)
+
+Strategic risk dashboard:
+
+- **22 Countries Monitored** - Including Ukraine, Israel/Gaza, Taiwan Strait, Red Sea, DRC, Ethiopia, Somalia, and more
+- **Ring Score Visualization** - SVG circular progress indicator per country (0-100 scale)
+- **Trend Indicators** - Comparing 24h vs previous 24h: worsening (▲), improving (▼), stable (►)
+- **World Heatmap** - Geographic dot display showing country positions
+
+### CCTV Mesh
+
+Live traffic camera feeds from around the world:
+
+- **25+ Camera Feeds** - London, Singapore, Los Angeles, Hong Kong, New York, Sydney, Dubai
+- **Server-Side Proxy** - Government camera feeds proxied through `/api/cctv` to avoid CORS
+- **Auto-Refresh** - Camera images update every 30 seconds
+
 ### Map Visualization
 
 - **Auto-Pan Mode** - Play/pause button to automatically pan across the globe
 - **Event Clustering** - Group nearby events for cleaner visualization at lower zoom levels
 - **Heatmap View** - Toggle heatmap to visualize event density
 - **Entity Locations** - When researching entities, their known locations appear as purple markers on the map
+- **Live Flights** - Real-time aircraft positions from OpenSky Network
+- **Satellite Tracking** - ISS and major satellite positions via N2YO
+- **AIS / Ships** - Live vessel tracking via AISStream
+- **Weather Radar** - Mapbox weather overlay layer
+- **Nuclear Sites** - Global nuclear facility locations
 
 ## Tech Stack
 
