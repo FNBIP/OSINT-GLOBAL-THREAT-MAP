@@ -4,9 +4,6 @@
  * AI Strategic Posture Panel — worldmonitor style
  * Shows geopolitical theater posture indicators derived from
  * the top breaking/conflict news clusters.
- *
- * Theaters: Ukraine, Middle East, Taiwan Strait, Korean Peninsula,
- *           South China Sea, Sahel, Red Sea, Iran
  */
 
 import { useMemo } from "react";
@@ -44,7 +41,6 @@ function detectLevel(title: string, keywords: string[]): "LOW" | "ELEVATED" | "H
   const t = title.toLowerCase();
   const hit = keywords.some((k) => t.includes(k));
   if (!hit) return "LOW";
-  // Escalation indicators
   if (/attack|strike|killed|bomb|explosion|missile|war|invasion|offensive/.test(t)) return "CRIT";
   if (/threat|sanction|deploy|escalat|tension|clash|casualties/.test(t)) return "HIGH";
   return "ELEVATED";
@@ -55,7 +51,6 @@ export function StrategicPosturePanel() {
   const isLoading = useNewsStore((s) => s.isLoading);
 
   const theaters = useMemo(() => {
-    // Score each theater based on recent articles (last 24h)
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const recent = items.filter((i) => new Date(i.pubDate).getTime() > cutoff);
 
@@ -70,7 +65,6 @@ export function StrategicPosturePanel() {
         const maxLevel = levels.reduce((a, b) =>
           LEVEL_ORDER[b]! > LEVEL_ORDER[a]! ? b : a, "LOW" as string
         ) as "LOW" | "ELEVATED" | "HIGH" | "CRIT";
-        // Take max of base and detected
         level = LEVEL_ORDER[maxLevel]! >= LEVEL_ORDER[theater.baseLevel]! ? maxLevel : theater.baseLevel;
       }
 
@@ -80,28 +74,28 @@ export function StrategicPosturePanel() {
 
   return (
     <PanelShell title="AI Strategic Posture" live headerRight={
-      <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 2, background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)", fontWeight: 700, letterSpacing: "0.4px" }}>
+      <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 3, background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)", fontWeight: 700, letterSpacing: "0.4px" }}>
         {theaters.filter((t) => t.level === "CRIT").length} CRIT
       </span>
     }>
       {isLoading && items.length === 0 ? (
-        <div style={{ padding: "16px", fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>Analyzing...</div>
+        <div style={{ padding: "20px", fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>Analyzing...</div>
       ) : (
         <div>
           {theaters.map((t) => (
             <div key={t.id} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.04)",
-              borderLeft: `2px solid ${LEVEL_COLOR[t.level]}`,
+              padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderLeft: `3px solid ${LEVEL_COLOR[t.level]}`,
             }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)" }}>{t.name}</span>
-                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>{t.name}</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>
                   {t.articleCount > 0 ? `${t.articleCount} articles (24h)` : "monitoring"}
                 </span>
               </div>
               <span style={{
-                fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 2,
+                fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 3,
                 background: `${LEVEL_COLOR[t.level]}20`,
                 color: LEVEL_COLOR[t.level],
                 border: `1px solid ${LEVEL_COLOR[t.level]}40`,

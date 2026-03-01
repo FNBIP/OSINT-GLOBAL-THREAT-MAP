@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * WorldviewHUD — WORLDVIEW classified intel UI overlay
- * Matches the video: logo, classified header, DATA LAYERS left panel,
- * right parameters panel, city bar, skin bar, telemetry.
+ * WorldviewHUD — OSINT intel UI overlay
+ * Data layers panel, skin selector, city quick-jump, telemetry.
  */
 
 import { useEffect, useState } from "react";
@@ -57,24 +56,6 @@ function toDMS(lat: number, lon: number): string {
   return `${fmt(lat,"N","S")} ${fmt(lon,"E","W")}`;
 }
 
-// ── Slider ─────────────────────────────────────────────────────────────────────
-function HudSlider({ value, color = "#00aaff", onChange }: {
-  value: number; color?: string; onChange?: (v: number) => void;
-}) {
-  return (
-    <div
-      style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, position: "relative", cursor: "pointer" }}
-      onClick={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        onChange?.(Math.round(((e.clientX - r.left) / r.width) * 100));
-      }}
-    >
-      <div style={{ position:"absolute", left:0, top:0, bottom:0, width:`${value}%`, background:color, borderRadius:2 }} />
-      <div style={{ position:"absolute", top:"50%", left:`${value}%`, transform:"translate(-50%,-50%)", width:8, height:8, borderRadius:"50%", background:color, boxShadow:`0 0 5px ${color}` }} />
-    </div>
-  );
-}
-
 // ── Layer row in DATA LAYERS panel ────────────────────────────────────────────
 function LayerRow({ icon, name, count, active, onToggle, color = "#00aaff" }: {
   icon: string; name: string; count?: string | number;
@@ -119,19 +100,12 @@ export function WorldviewHUD({
   } = useMapStore();
 
   const [now, setNow] = useState<Date | null>(null);
-  const [bloom, setBloom] = useState(100);
-  const [sharpen, setSharpen] = useState(56);
-  const [panopticOpacity, setPanopticOpacity] = useState(40);
-  const [pixelation, setPixelation] = useState(35);
-  const [distortion, setDistortion] = useState(65);
-  const [instability, setInstability] = useState(55);
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [panopticVis, setPanopticVis] = useState(14);
   const [panopticSrc, setPanopticSrc] = useState(1966);
   const [panopticDens, setPanopticDens] = useState(1.46);
   const [panopticLat, setPanopticLat] = useState(3.6);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   useEffect(() => {
     setNow(new Date());
@@ -196,51 +170,6 @@ export function WorldviewHUD({
         </div>
       )}
 
-      {/* ── Top-left: WORLDVIEW logo + classified header ── */}
-      <div style={{
-        position:"absolute", top: showPanoptic ? 22 : 6, left:10, zIndex:20,
-        pointerEvents:"none",
-      }}>
-        {/* Logo */}
-        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
-          <div style={{
-            width:22, height:22, borderRadius:"50%",
-            border:"1px solid rgba(255,255,255,0.3)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-          }}>
-            <div style={{ width:10, height:10, borderRadius:"50%", background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.4)" }} />
-          </div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, color:"#fff", letterSpacing:"3px", lineHeight:1, ...mono }}>
-              WORLDVIEW
-            </div>
-            <div style={{ fontSize:7, color:"rgba(255,255,255,0.3)", letterSpacing:"2px", ...mono }}>
-              NO PLACE LEFT BEHIND
-            </div>
-          </div>
-        </div>
-
-        {/* Classified */}
-        <div style={{ marginTop:8, ...mono }}>
-          <div style={{ color:"#ff3333", fontSize:9, fontWeight:700, letterSpacing:"1px", marginBottom:1 }}>
-            TOP SECRET // SI-TK // NOFORN
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-            <div style={{ width:2, height:28, background:"rgba(255,200,80,0.5)" }} />
-            <div>
-              <div style={{ color:"rgba(255,200,100,0.6)", fontSize:7.5 }}>KH11-4166 OPS-4117</div>
-              <div style={{ color:activeColor, fontSize:13, fontWeight:700, letterSpacing:"2px" }}>{skinLabel[mapSkin]}</div>
-            </div>
-          </div>
-          <div style={{ marginTop:4 }}>
-            <div style={{ color:"rgba(255,255,255,0.25)", fontSize:7, letterSpacing:"0.5px" }}>SUMMARY</div>
-            <div style={{ color:"rgba(255,255,255,0.55)", fontSize:8, maxWidth:220 }}>
-              {skinLabel[mapSkin]} {activeCity ? `STREET NEAR ${activeCity.toUpperCase()}` : "GLOBAL"} | 0KM | NORTH...
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Top-right: ACTIVE STYLE + REC ── */}
       <div style={{
         position:"absolute", top: showPanoptic ? 22 : 6, right:10, zIndex:20,
@@ -269,12 +198,20 @@ export function WorldviewHUD({
         transition:"width 0.3s ease",
         display:"flex", flexDirection:"column",
       }}>
-        <div style={{ minWidth:270, height:"100%", display:"flex", flexDirection:"column", paddingTop:80 }}>
+        <div style={{ minWidth:270, height:"100%", display:"flex", flexDirection:"column", paddingTop:40 }}>
 
-          {/* CCTV MESH mini section */}
+          {/* PANOPTIC toggle */}
           <div style={{ ...panelBg, margin:"0 0 4px 0", padding:"6px 10px" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", ...mono, letterSpacing:"0.5px" }}>CCTV MESH</span>
+            <div
+              onClick={togglePanoptic}
+              style={{
+                display:"flex", alignItems:"center", justifyContent:"space-between",
+                cursor:"pointer",
+              }}
+            >
+              <span style={{ fontSize:9, fontWeight:700, color: showPanoptic ? "#00ff50" : "rgba(255,255,255,0.35)", ...mono, letterSpacing:"0.5px" }}>
+                {showPanoptic ? "◉ " : "◎ "}PANOPTIC
+              </span>
               <span style={{ fontSize:8, color:"rgba(255,255,255,0.2)", ...mono }}>▸</span>
             </div>
           </div>
@@ -317,21 +254,6 @@ export function WorldviewHUD({
         </span>
       </div>
 
-      {/* ── Lens outer glow ring ── */}
-      <div style={{
-        position:"absolute", inset:0, zIndex:9, pointerEvents:"none",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        paddingLeft: leftPanelOpen ? "20px" : "0",
-      }}>
-        <div style={{
-          width:"min(72vh, 72vw)", height:"min(72vh, 72vw)",
-          borderRadius:"50%",
-          border:"1px solid rgba(255,255,255,0.12)",
-          boxShadow:"0 0 0 1px rgba(255,255,255,0.03)",
-          flexShrink:0,
-        }} />
-      </div>
-
       {/* ── Lens crosshair ── */}
       <div style={{
         position:"absolute", inset:0, zIndex:10, pointerEvents:"none",
@@ -345,164 +267,22 @@ export function WorldviewHUD({
         </div>
       </div>
 
-      {/* ── Right parameters panel ── */}
-      <div style={{
-        position:"absolute", top: showPanoptic ? 62 : 48, right:0, bottom:0, zIndex:20,
-        width: rightPanelOpen ? 250 : 0,
-        overflow:"hidden", transition:"width 0.3s ease",
-        ...panelBg,
-        borderTop:"none", borderBottom:"none", borderRight:"none",
-      }}>
-        <div style={{ padding:"10px 12px", minWidth:250 }}>
-
-          {/* BLOOM */}
-          <div style={{ marginBottom:8 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-              <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.55)", ...mono }}>✦ BLOOM</span>
-              <span style={{ fontSize:9, color:"#00aaff", ...mono }}>{bloom}%</span>
-            </div>
-            <HudSlider value={bloom} color="#00aaff" onChange={setBloom} />
-          </div>
-
-          {/* SHARPEN */}
-          <div style={{ marginBottom:8 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                <div style={{ width:7, height:7, borderRadius:"50%", background:"#00aaff" }} />
-                <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.55)", ...mono }}>SHARPEN</span>
-              </div>
-              <span style={{ fontSize:9, color:"#00aaff", ...mono }}>{sharpen}%</span>
-            </div>
-            <HudSlider value={sharpen} color="#00aaff" onChange={setSharpen} />
-          </div>
-
-          {/* HUD */}
-          <div style={{ marginBottom:8 }}>
-            <div style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:3, padding:"3px 8px", marginBottom:6, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:9, fontWeight:700, color:"#fff", ...mono }}>HUD</span>
-            </div>
-            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <span style={{ fontSize:8, color:"rgba(255,255,255,0.3)", ...mono }}>LAYOUT</span>
-              <div style={{ flex:1, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:3, padding:"2px 6px", display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:9, color:"rgba(255,255,255,0.65)", ...mono }}>Tactical</span>
-                <span style={{ fontSize:8, color:"rgba(255,255,255,0.3)" }}>▾</span>
-              </div>
-            </div>
-          </div>
-
-          {/* PANOPTIC */}
-          <div style={{ marginBottom:8 }}>
-            <div
-              onClick={togglePanoptic}
-              style={{
-                display:"flex", justifyContent:"space-between", alignItems:"center",
-                background: showPanoptic ? "rgba(0,255,80,0.14)" : "rgba(255,255,255,0.04)",
-                border:`1px solid ${showPanoptic ? "rgba(0,255,80,0.45)" : "rgba(255,255,255,0.08)"}`,
-                borderRadius:3, padding:"4px 8px", cursor:"pointer", marginBottom:6,
-              }}
-            >
-              <span style={{ fontSize:9, fontWeight:700, color: showPanoptic ? "#00ff50" : "rgba(255,255,255,0.4)", ...mono }}>
-                {showPanoptic ? "◉ " : "◎ "}PANOPTIC
-              </span>
-            </div>
-            {showPanoptic && (
-              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
-                <span style={{ fontSize:7, color:"rgba(255,255,255,0.3)", ...mono, minWidth:48 }}>OPACITY</span>
-                <HudSlider value={panopticOpacity} color="#00ff50" onChange={setPanopticOpacity} />
-                <span style={{ fontSize:7, color:"#00ff50", ...mono, minWidth:22, textAlign:"right" }}>{panopticOpacity}%</span>
-              </div>
-            )}
-          </div>
-
-          {/* CLEAN UI */}
-          <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:3, padding:"4px 8px", marginBottom:10, cursor:"pointer", textAlign:"center" }}>
-            <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", ...mono }}>CLEAN UI</span>
-          </div>
-
-          {/* PARAMETERS */}
-          <div style={{ borderTop:"1px solid rgba(255,255,255,0.05)", paddingTop:8 }}>
-            <div style={{ fontSize:8, color:"rgba(255,255,255,0.2)", ...mono, letterSpacing:"0.5px", marginBottom:8 }}>PARAMETERS</div>
-
-            {(mapSkin === "crt") && (
-              <>
-                {[["Pixelation", pixelation, setPixelation] as const,
-                  ["Distortion", distortion, setDistortion] as const,
-                  ["Instability", instability, setInstability] as const,
-                ].map(([label, val, setter]) => (
-                  <div key={label} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:8, color:"rgba(255,255,255,0.4)", ...mono, minWidth:58 }}>{label}</span>
-                    <HudSlider value={val as number} color="#00aaff" onChange={setter as (v:number)=>void} />
-                  </div>
-                ))}
-              </>
-            )}
-            {(mapSkin === "flir") && (
-              <>
-                {[["Sensitivity",70],["Bloom",bloom],["SHOT/BNOT",45],["Pixelation",pixelation]].map(([l,v]) => (
-                  <div key={String(l)} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:8, color:"rgba(255,255,255,0.4)", ...mono, minWidth:58 }}>{l}</span>
-                    <HudSlider value={Number(v)} color="#00ff88" />
-                  </div>
-                ))}
-              </>
-            )}
-            {(mapSkin === "nvg") && (
-              <>
-                {[["Gain",75],["Bloom",bloom],["Scanlines",80],["Pixelation",pixelation]].map(([l,v]) => (
-                  <div key={String(l)} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:8, color:"rgba(255,255,255,0.4)", ...mono, minWidth:58 }}>{l}</span>
-                    <HudSlider value={Number(v)} color="#39ff14" />
-                  </div>
-                ))}
-              </>
-            )}
-            {(!["crt","flir","nvg"].includes(mapSkin)) && (
-              <>
-                {[["Contrast",55],["Saturation",60],["Brightness",50]].map(([l,v]) => (
-                  <div key={String(l)} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:8, color:"rgba(255,255,255,0.4)", ...mono, minWidth:58 }}>{l}</span>
-                    <HudSlider value={Number(v)} color={activeColor} />
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right panel toggle ── */}
-      <div
-        onClick={() => setRightPanelOpen(o => !o)}
-        style={{
-          position:"absolute", top:"50%", right: rightPanelOpen ? 250 : 0,
-          transform:"translateY(-50%)",
-          zIndex:21, cursor:"pointer",
-          background:"rgba(0,0,0,0.7)", border:"1px solid rgba(255,255,255,0.08)",
-          borderRight:"none", borderRadius:"4px 0 0 4px",
-          padding:"6px 3px", transition:"right 0.3s ease",
-        }}
-      >
-        <span style={{ fontSize:8, color:"rgba(255,255,255,0.35)", writingMode:"vertical-rl" }}>
-          {rightPanelOpen ? "▶" : "◀"}
-        </span>
-      </div>
-
       {/* ── Bottom-left: MGRS + DMS ── */}
-      <div style={{ position:"absolute", bottom:80, left: leftPanelOpen ? 278 : 10, zIndex:20, ...mono, pointerEvents:"none", transition:"left 0.3s ease" }}>
+      <div style={{ position:"absolute", bottom:130, left: leftPanelOpen ? 278 : 10, zIndex:20, ...mono, pointerEvents:"none", transition:"left 0.3s ease" }}>
         <div style={{ color:"rgba(255,255,255,0.45)", fontSize:8, marginBottom:1 }}>MGRS: {toMGRS(mapLat, mapLon)}</div>
         <div style={{ color:"rgba(255,255,255,0.35)", fontSize:8 }}>{toDMS(mapLat, mapLon)}</div>
       </div>
 
       {/* ── Bottom-right: GSD / NIIRS / ALT / SUN ── */}
-      <div style={{ position:"absolute", bottom:80, right: rightPanelOpen ? 258 : 10, zIndex:20, textAlign:"right", ...mono, pointerEvents:"none", transition:"right 0.3s ease" }}>
+      <div style={{ position:"absolute", bottom:130, right:10, zIndex:20, textAlign:"right", ...mono, pointerEvents:"none" }}>
         <div style={{ color:"rgba(255,220,0,0.85)", fontSize:9, fontWeight:700 }}>GSD: {gsd}M NIIRS: {niirs}</div>
         <div style={{ color:"rgba(255,255,255,0.4)", fontSize:8 }}>ALT: {altKm.toLocaleString()}M SUN: {sunEl}° EL</div>
       </div>
 
-      {/* ── LOCATIONS bar (above city bar) ── */}
+      {/* ── LOCATIONS bar ── */}
       <div style={{
-        position:"absolute", bottom:54,
-        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"} - ${rightPanelOpen ? "250px" : "0px"}) / 2)`,
+        position:"absolute", bottom:94,
+        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"}) / 2)`,
         transform:"translateX(-50%)",
         zIndex:20, ...panelBg, borderRadius:4,
         display:"flex", alignItems:"center", overflow:"hidden",
@@ -527,7 +307,7 @@ export function WorldviewHUD({
       {/* ── Bottom skin selector bar ── */}
       <div style={{
         position:"absolute", bottom:6,
-        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"} - ${rightPanelOpen ? "250px" : "0px"}) / 2)`,
+        left: `calc(${leftPanelOpen ? "270px" : "0px"} + (100% - ${leftPanelOpen ? "270px" : "0px"}) / 2)`,
         transform:"translateX(-50%)",
         zIndex:20,
         display:"flex", gap:2,

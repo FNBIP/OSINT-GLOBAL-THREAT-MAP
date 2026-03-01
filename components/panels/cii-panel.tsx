@@ -51,7 +51,7 @@ function getLabel(score: number): string {
 }
 
 // ── Ring Score SVG ──────────────────────────────────────────────────────────────
-function RingScore({ score, size = 32 }: { score: number; size?: number }) {
+function RingScore({ score, size = 34 }: { score: number; size?: number }) {
   const r = (size - 4) / 2;
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - score / 100);
@@ -59,12 +59,10 @@ function RingScore({ score, size = 32 }: { score: number; size?: number }) {
 
   return (
     <svg width={size} height={size} style={{ flexShrink: 0 }}>
-      {/* Background ring */}
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={2.5}
       />
-      {/* Score ring */}
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none" stroke={color} strokeWidth={2.5}
@@ -74,11 +72,10 @@ function RingScore({ score, size = 32 }: { score: number; size?: number }) {
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ transition: "stroke-dashoffset 0.6s ease" }}
       />
-      {/* Score text */}
       <text
         x={size / 2} y={size / 2 + 1}
         textAnchor="middle" dominantBaseline="middle"
-        fill={color} fontSize={size > 28 ? 9 : 7} fontWeight={800}
+        fill={color} fontSize={size > 28 ? 10 : 8} fontWeight={800}
         fontFamily="monospace"
       >
         {score}
@@ -93,23 +90,19 @@ function WorldHeatmap({ countries }: { countries: { name: string; score: number;
     <div style={{
       position: "relative",
       width: "100%",
-      height: 80,
+      height: 90,
       background: "rgba(255,255,255,0.02)",
-      borderRadius: 4,
+      borderRadius: 6,
       overflow: "hidden",
-      margin: "4px 0",
+      margin: "6px 0",
     }}>
-      {/* Simple world outline (stylized) */}
       <svg viewBox="0 0 100 70" width="100%" height="100%" style={{ opacity: 0.08 }}>
         <ellipse cx={50} cy={35} rx={48} ry={32} fill="none" stroke="white" strokeWidth={0.3} />
-        {/* Equator */}
         <line x1={2} y1={35} x2={98} y2={35} stroke="white" strokeWidth={0.15} />
-        {/* Grid lines */}
         <line x1={50} y1={3} x2={50} y2={67} stroke="white" strokeWidth={0.15} />
         <line x1={25} y1={3} x2={25} y2={67} stroke="white" strokeWidth={0.1} />
         <line x1={75} y1={3} x2={75} y2={67} stroke="white" strokeWidth={0.1} />
       </svg>
-      {/* Country dots */}
       {countries.map((c) => (
         <div
           key={c.name}
@@ -118,8 +111,8 @@ function WorldHeatmap({ countries }: { countries: { name: string; score: number;
             position: "absolute",
             left: `${c.x}%`,
             top: `${c.y * 100 / 70}%`,
-            width: 6,
-            height: 6,
+            width: 7,
+            height: 7,
             borderRadius: "50%",
             background: getColor(c.score),
             opacity: 0.85,
@@ -150,7 +143,6 @@ export function CIIPanel() {
     });
 
     return TRACKED_COUNTRIES.map((country) => {
-      // 24h mentions
       const mentions24 = recent24.filter((i) =>
         country.keywords.some((k) => i.title.toLowerCase().includes(k))
       );
@@ -160,7 +152,6 @@ export function CIIPanel() {
       const boost24 = Math.min(mentions24.length * 1.5 + conflict24 * 3, 20);
       const score24 = Math.min(Math.round(country.base + boost24), 99);
 
-      // 48h-24h mentions (previous day)
       const mentions48 = recent48.filter((i) =>
         country.keywords.some((k) => i.title.toLowerCase().includes(k))
       );
@@ -170,7 +161,6 @@ export function CIIPanel() {
       const boost48 = Math.min(mentions48.length * 1.5 + conflict48 * 3, 20);
       const score48 = Math.min(Math.round(country.base + boost48), 99);
 
-      // Trend: compare 24h score to previous-day score
       const diff = score24 - score48;
       const trend: "up" | "down" | "stable" = diff > 2 ? "up" : diff < -2 ? "down" : "stable";
 
@@ -196,62 +186,55 @@ export function CIIPanel() {
       <button
         onClick={() => setShowMap((v) => !v)}
         style={{
-          fontSize: 8, padding: "1px 5px", borderRadius: 2, cursor: "pointer",
+          fontSize: 10, padding: "2px 7px", borderRadius: 3, cursor: "pointer",
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          color: "rgba(255,255,255,0.3)", letterSpacing: "0.3px",
+          color: "rgba(255,255,255,0.35)", letterSpacing: "0.3px",
         }}
       >
         {showMap ? "LIST" : "MAP"}
       </button>
     }>
       {isLoading && items.length === 0 ? (
-        <div style={{ padding: "16px", fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
+        <div style={{ padding: "20px", fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>
           Analyzing threat signals...
         </div>
       ) : (
-        <div style={{ overflowY: "auto", maxHeight: 420 }}>
-          {/* World Heatmap */}
+        <div style={{ overflowY: "auto", maxHeight: 460 }}>
           {showMap && (
-            <div style={{ padding: "4px 10px" }}>
+            <div style={{ padding: "6px 14px" }}>
               <WorldHeatmap countries={ranked.map((c) => ({ name: c.name, score: c.score, x: c.x, y: c.y }))} />
             </div>
           )}
 
-          {/* Country list */}
           {ranked.map((c, i) => {
             const ti = trendIcon(c.trend);
             return (
               <div key={c.name} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "5px 10px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "8px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)",
               }}>
-                {/* Rank */}
                 <span style={{
-                  fontSize: 8, color: "rgba(255,255,255,0.15)",
-                  minWidth: 14, fontWeight: 700, fontFamily: "monospace",
+                  fontSize: 10, color: "rgba(255,255,255,0.2)",
+                  minWidth: 18, fontWeight: 700, fontFamily: "monospace",
                 }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
-                {/* Ring score */}
-                <RingScore score={c.score} size={30} />
+                <RingScore score={c.score} size={34} />
 
-                {/* Country info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{
-                      fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)",
+                      fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     }}>
                       {c.name}
                     </span>
-                    {/* Trend indicator */}
-                    <span style={{ fontSize: 7, color: ti.color, fontWeight: 800 }}>
+                    <span style={{ fontSize: 9, color: ti.color, fontWeight: 800 }}>
                       {ti.symbol}
                     </span>
                   </div>
-                  {/* Breakdown */}
-                  <div style={{ display: "flex", gap: 8, fontSize: 8, color: "rgba(255,255,255,0.25)", marginTop: 1 }}>
+                  <div style={{ display: "flex", gap: 10, fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
                     <span>{c.newsCount} article{c.newsCount !== 1 ? "s" : ""}</span>
                     {c.conflictCount > 0 && (
                       <span style={{ color: "rgba(239,68,68,0.5)" }}>
@@ -261,12 +244,11 @@ export function CIIPanel() {
                   </div>
                 </div>
 
-                {/* Severity badge */}
                 <div style={{
-                  display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, minWidth: 36,
+                  display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, minWidth: 40,
                 }}>
                   <span style={{
-                    fontSize: 7, fontWeight: 800, padding: "1px 4px", borderRadius: 2,
+                    fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3,
                     background: `${getColor(c.score)}15`, color: getColor(c.score),
                     border: `1px solid ${getColor(c.score)}30`, letterSpacing: "0.4px",
                     fontFamily: "monospace",

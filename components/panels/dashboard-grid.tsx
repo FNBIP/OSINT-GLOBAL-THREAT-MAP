@@ -47,8 +47,6 @@ import {
   MyMonitorsPanel,
 } from "./final-panels";
 
-const mono: React.CSSProperties = { fontFamily: "monospace", letterSpacing: "0.5px" };
-
 // ── Section header with collapse toggle ─────────────────────────────────────────
 function SectionHeader({
   title,
@@ -70,29 +68,44 @@ function SectionHeader({
         width: "100%",
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        padding: "10px 16px",
-        background: "rgba(255,255,255,0.02)",
+        gap: 10,
+        padding: "14px 20px",
+        background: open ? "rgba(255,255,255,0.03)" : "transparent",
         border: "none",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
         cursor: "pointer",
-        ...mono,
+        transition: "background 0.15s",
       }}
     >
-      <span style={{ fontSize: 14, opacity: 0.6 }}>{icon}</span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)", letterSpacing: "1.5px", textTransform: "uppercase" }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span style={{
+        fontSize: 13,
+        fontWeight: 700,
+        color: open ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)",
+        letterSpacing: "1.5px",
+        textTransform: "uppercase",
+        fontFamily: "monospace",
+        transition: "color 0.15s",
+      }}>
         {title}
       </span>
       {count != null && (
         <span style={{
-          fontSize: 9, padding: "1px 6px", borderRadius: 3,
-          background: "rgba(0,170,255,0.1)", color: "rgba(0,170,255,0.7)",
+          fontSize: 11, fontWeight: 600,
+          padding: "2px 8px", borderRadius: 6,
+          background: "rgba(0,170,255,0.1)", color: "rgba(0,170,255,0.8)",
           border: "1px solid rgba(0,170,255,0.2)",
         }}>
           {count}
         </span>
       )}
-      <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.25)", transition: "transform 0.2s", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
+      <span style={{
+        marginLeft: "auto",
+        fontSize: 12,
+        color: "rgba(255,255,255,0.3)",
+        transition: "transform 0.2s",
+        transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+      }}>
         ▾
       </span>
     </button>
@@ -104,9 +117,9 @@ function SectionGrid({ cols, children }: { cols?: number; children: ReactNode })
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: `repeat(auto-fill, minmax(${cols === 1 ? "100%" : "340px"}, 1fr))`,
-      gap: 10,
-      padding: "10px 16px 16px",
+      gridTemplateColumns: `repeat(auto-fill, minmax(${cols === 1 ? "100%" : "380px"}, 1fr))`,
+      gap: 14,
+      padding: "14px 20px 20px",
     }}>
       {children}
     </div>
@@ -116,7 +129,7 @@ function SectionGrid({ cols, children }: { cols?: number; children: ReactNode })
 function Wrapped({ title, children }: { title: string; children: ReactNode }) {
   return (
     <PanelShell title={title}>
-      <div style={{ height: 380, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: 420, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {children}
       </div>
     </PanelShell>
@@ -144,9 +157,9 @@ export function DashboardGrid() {
       style={{
         flex: 1,
         overflowY: "auto",
-        background: "#080808",
+        background: "#0a0a0f",
         scrollbarWidth: "thin",
-        scrollbarColor: "rgba(255,255,255,0.08) transparent",
+        scrollbarColor: "rgba(255,255,255,0.1) transparent",
       }}
     >
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -180,7 +193,7 @@ export function DashboardGrid() {
       <SectionHeader title="OSINT Feed" icon="📰" open={sections.osint} onToggle={() => toggle("osint")} />
       {sections.osint && (
         <SectionGrid>
-          <div style={{ gridColumn: "1 / -1", height: 450, display: "flex", flexDirection: "column" }}>
+          <div style={{ gridColumn: "1 / -1", height: 500, display: "flex", flexDirection: "column" }}>
             <NewsPanel />
           </div>
         </SectionGrid>

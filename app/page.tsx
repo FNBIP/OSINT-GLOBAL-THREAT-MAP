@@ -5,7 +5,6 @@ import { useEvents } from "@/hooks/use-events";
 import { useNews } from "@/hooks/use-news";
 import { Header } from "@/components/header";
 import { ThreatMap } from "@/components/map/threat-map";
-import { TimelineScrubber } from "@/components/map/timeline-scrubber";
 import { MapControls } from "@/components/map/map-controls";
 import { MapLegend } from "@/components/map/map-legend";
 import { WelcomeModal } from "@/components/welcome-modal";
@@ -46,7 +45,6 @@ export default function Home() {
         <div className="flex flex-1 overflow-hidden">
           <div className="relative flex-1">
             <ThreatMap />
-            <TimelineScrubber />
             <MapControls />
             <MapLegend />
           </div>

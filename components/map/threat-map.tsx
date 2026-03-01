@@ -12,6 +12,7 @@ import Map, {
   type MapMouseEvent,
   type LayerProps,
 } from "react-map-gl/mapbox";
+import mapboxgl from "mapbox-gl";
 import { useMapStore } from "@/stores/map-store";
 import { useEventsStore } from "@/stores/events-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -256,22 +257,35 @@ const militaryBaseLabelLayer: LayerProps = {
   },
 };
 
-// ── AIS / Vessel layer ───────────────────────────────────────────────────────
+// ── AIS / Vessel layer — color by category ───────────────────────────────────
 const vesselLayer: LayerProps = {
   id: "vessels-layer",
   type: "circle",
   paint: {
     "circle-color": [
-      "match", ["get", "navstat"],
-      0, "#00ccff",   // underway — cyan
-      7, "#ff9900",   // fishing — orange
-      1, "#888888",   // anchored — grey
-      5, "#888888",   // moored — grey
+      "match", ["get", "category"],
+      "military",   "#ef4444",   // red
+      "commercial", "#00ccff",   // cyan
+      "civilian",   "#22c55e",   // green
       "#00ccff",
     ],
-    "circle-radius": 3,
-    "circle-stroke-width": 1,
-    "circle-stroke-color": "#001133",
+    "circle-radius": [
+      "match", ["get", "category"],
+      "military", 4,
+      3,
+    ],
+    "circle-stroke-width": [
+      "match", ["get", "category"],
+      "military", 2,
+      1,
+    ],
+    "circle-stroke-color": [
+      "match", ["get", "category"],
+      "military",   "#440000",
+      "commercial", "#001133",
+      "civilian",   "#003311",
+      "#001133",
+    ],
     "circle-opacity": 0.9,
   },
 };
@@ -288,43 +302,87 @@ const vesselLabelLayer: LayerProps = {
     "text-optional": true,
   },
   paint: {
-    "text-color": "#00ccff",
+    "text-color": [
+      "match", ["get", "category"],
+      "military",   "#ef4444",
+      "commercial", "#00ccff",
+      "civilian",   "#22c55e",
+      "#00ccff",
+    ],
     "text-halo-color": "#000000",
     "text-halo-width": 1,
     "text-opacity": 0.7,
   },
 };
 
-// ── Flight layer ────────────────────────────────────────────────────────────
+// ── Flight layer — airplane glyphs rotated by heading, colored by category ──
 const flightLayer: LayerProps = {
   id: "flights-layer",
-  type: "circle",
+  type: "symbol",
+  layout: {
+    "text-field": "▲",
+    "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+    "text-size": [
+      "interpolate", ["linear"], ["get", "altitude"],
+      0, 9,
+      5000, 11,
+      12000, 14,
+    ],
+    "text-rotate": ["get", "track"],
+    "text-rotation-alignment": "map",
+    "text-allow-overlap": true,
+    "text-ignore-placement": true,
+  },
   paint: {
-    "circle-color": "#00ffcc",
-    "circle-radius": 3,
-    "circle-stroke-width": 1,
-    "circle-stroke-color": "#004433",
-    "circle-opacity": 0.85,
+    "text-color": [
+      "match", ["get", "category"],
+      "military",   "#ef4444",   // red
+      "commercial", "#00ffcc",   // cyan
+      "civilian",   "#fbbf24",   // amber
+      "#00ffcc",
+    ],
+    "text-halo-color": [
+      "match", ["get", "category"],
+      "military",   "rgba(239,68,68,0.3)",
+      "commercial", "rgba(0,255,204,0.25)",
+      "civilian",   "rgba(251,191,36,0.25)",
+      "rgba(0,255,204,0.25)",
+    ],
+    "text-halo-width": 2,
+    "text-opacity": 0.9,
   },
 };
 
-// NVG-specific: airplane glyphs (green ✈ icons)
+// NVG-specific: green tinted airplane glyphs (military still highlighted)
 const flightLayerNVG: LayerProps = {
   id: "flights-layer-nvg",
   type: "symbol",
   layout: {
-    "text-field": "✈",
-    "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
-    "text-size": 10,
-    "text-allow-overlap": true,
-    "text-ignore-placement": true,
+    "text-field": "▲",
+    "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+    "text-size": [
+      "interpolate", ["linear"], ["get", "altitude"],
+      0, 9,
+      5000, 11,
+      12000, 14,
+    ],
     "text-rotate": ["get", "track"],
     "text-rotation-alignment": "map",
+    "text-allow-overlap": true,
+    "text-ignore-placement": true,
   },
   paint: {
-    "text-color": "#39ff14",
-    "text-halo-color": "rgba(0,40,0,0.5)",
-    "text-halo-width": 1,
+    "text-color": [
+      "match", ["get", "category"],
+      "military", "#ff4444",    // red stands out in NVG
+      "#39ff14",                // green for all others
+    ],
+    "text-halo-color": [
+      "match", ["get", "category"],
+      "military", "rgba(255,68,68,0.3)",
+      "rgba(57,255,20,0.25)",
+    ],
+    "text-halo-width": 2,
     "text-opacity": 0.9,
   },
 };
@@ -336,27 +394,53 @@ const flightLabelLayer: LayerProps = {
     "text-field": ["get", "callsign"],
     "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
     "text-size": 8,
-    "text-offset": [0, 1.2],
+    "text-offset": [0, 1.4],
     "text-anchor": "top",
     "text-optional": true,
   },
   paint: {
-    "text-color": "#00ffcc",
+    "text-color": [
+      "match", ["get", "category"],
+      "military",   "#ef4444",
+      "commercial", "#00ffcc",
+      "civilian",   "#fbbf24",
+      "#00ffcc",
+    ],
     "text-halo-color": "#000000",
     "text-halo-width": 1,
     "text-opacity": 0.7,
   },
 };
 
-// ── Satellite layer ──────────────────────────────────────────────────────────
+// ── Satellite layer — color by category ──────────────────────────────────────
 const satelliteLayer: LayerProps = {
   id: "satellites-layer",
   type: "circle",
   paint: {
-    "circle-color": "#ff6600",
-    "circle-radius": 4,
-    "circle-stroke-width": 1,
-    "circle-stroke-color": "#441100",
+    "circle-color": [
+      "match", ["get", "category"],
+      "military",   "#ef4444",   // red
+      "commercial", "#ff9900",   // orange
+      "civilian",   "#a78bfa",   // purple (science/civil)
+      "#ff9900",
+    ],
+    "circle-radius": [
+      "match", ["get", "category"],
+      "military", 5,
+      4,
+    ],
+    "circle-stroke-width": [
+      "match", ["get", "category"],
+      "military", 2,
+      1,
+    ],
+    "circle-stroke-color": [
+      "match", ["get", "category"],
+      "military",   "#440000",
+      "commercial", "#441100",
+      "civilian",   "#2a1560",
+      "#441100",
+    ],
     "circle-opacity": 0.9,
   },
 };
@@ -373,7 +457,13 @@ const satelliteLabelLayer: LayerProps = {
     "text-optional": true,
   },
   paint: {
-    "text-color": "#ff9955",
+    "text-color": [
+      "match", ["get", "category"],
+      "military",   "#ef4444",
+      "commercial", "#ff9955",
+      "civilian",   "#a78bfa",
+      "#ff9955",
+    ],
     "text-halo-color": "#000000",
     "text-halo-width": 1,
     "text-opacity": 0.8,
@@ -507,6 +597,250 @@ const trafficFlowLayer: LayerProps = {
   },
 };
 
+// ── Classification: military / commercial / civilian ─────────────────────────
+
+type AssetCategory = "military" | "commercial" | "civilian";
+
+// Military callsign prefixes (ICAO / NATO)
+const MILITARY_CALLSIGN_PREFIXES = [
+  "RCH",   // USAF Reach (AMC tankers/transports)
+  "DUKE",   // US Army
+  "EVAC",   // USAF Aeromedical
+  "KING",   // USAF Rescue
+  "JAKE",   // USMC
+  "TOPCAT", // US Navy
+  "NAVY",   // US Navy
+  "CVN",    // US Navy Carrier
+  "MARLN",  // P-8 Poseidon
+  "FORTE",  // RQ-4 Global Hawk
+  "HOMER",  // USAF KC-135
+  "NCHO",   // USAF KC-46
+  "VIPER",  // Fighter
+  "RAGE",   // USAF Bombers
+  "DOOM",   // USAF B-52
+  "SKULL",  // USAF
+  "TITAN",  // USAF C-17
+  "GORDO",  // USAF
+  "BOLT",   // USAF F-35
+  "VVIP",   // VIP Military
+  "SAM",    // Special Air Mission (Air Force One)
+  "EXEC",   // Executive flights
+  "RRR",    // RAF (UK)
+  "ASCOT",  // RAF
+  "GAF",    // German Air Force
+  "FAF",    // French Air Force
+  "IAM",    // Italian Air Force
+  "CNV",    // Spanish Air Force
+  "BAF",    // Belgian Air Force
+  "NAF",    // Netherlands Air Force
+  "PLF",    // Polish Air Force
+  "SWF",    // Swedish Air Force
+  "NOF",    // Norwegian Air Force
+  "DNF",    // Danish Air Force
+  "HUF",    // Hungarian Air Force
+  "CFC",    // Canadian Armed Forces
+  "ASY",    // RAAF (Australia)
+  "NZA",    // RNZAF (New Zealand)
+  "IAF",    // Israeli Air Force
+  "TUAF",   // Turkish Air Force
+  "JSF",    // Japan Self-Defense
+  "ROK",    // Republic of Korea
+  "CASA",   // Military transport
+  "NATO",   // NATO flights
+  "LAGR",   // US Army
+  "PAT",    // USAF Patriot
+  "SPAR",   // USAF VIP
+];
+
+// Commercial airline ICAO 3-letter codes (major airlines)
+const AIRLINE_PREFIXES = [
+  "AAL", "UAL", "DAL", "SWA", "JBU", "ASA", "FFT", "NKS", "SKW", "RPA", // US
+  "BAW", "EZY", "RYR", "SHT", "VIR", "TOM", // UK/Ireland
+  "DLH", "EWG", "AUA", "SWR", "BEL", // Germany/Austria/Swiss
+  "AFR", "KLM", "VLG", "IBE", "TAP", "AZA", // Europe
+  "SAS", "FIN", "NAX", "ICE", // Scandinavia
+  "THY", "PGT", "UAE", "QTR", "ETD", "GIA", "SVA", "MEA", // Middle East/Turkey
+  "CPA", "CCA", "CES", "CSN", "HDA", "ANA", "JAL", "KAL", "AAR", // Asia
+  "SIA", "MAS", "THA", "VJC", "QFA", "ANZ", "JST", // SE Asia/Pacific
+  "SAA", "KQA", "ETH", "MSR", "RMA", // Africa
+  "ACA", "WJA", "TAM", "GLO", "AVA", "AEA", "CMP", // Americas
+  "AFL", "TUI", "WZZ", "LOT", "CSA", "ROT", "TVF", // More European
+];
+
+function classifyAircraft(callsign: string, icao24: string): AssetCategory {
+  const cs = callsign.toUpperCase().trim();
+
+  // Check military callsign prefixes
+  for (const prefix of MILITARY_CALLSIGN_PREFIXES) {
+    if (cs.startsWith(prefix)) return "military";
+  }
+
+  // Numeric-only callsigns often military (e.g., "12345678")
+  // But not always — some GA also use registration numbers
+  // Military squawk patterns in callsign
+  if (/^[A-Z]{3,5}\d{1,4}$/.test(cs)) {
+    // Check if it matches airline pattern (3-letter ICAO code + flight number)
+    const prefix3 = cs.slice(0, 3);
+    if (AIRLINE_PREFIXES.includes(prefix3)) return "commercial";
+  }
+
+  // Check airline ICAO prefixes for commercial
+  const csPrefix = cs.slice(0, 3);
+  if (AIRLINE_PREFIXES.includes(csPrefix)) return "commercial";
+
+  // ICAO24 hex ranges for military allocations (major countries)
+  // These are the first 2 hex digits that indicate military blocks
+  const hex = icao24.toLowerCase();
+  // US military: AE0000-AExxxx range
+  if (hex.startsWith("ae") || hex.startsWith("af")) return "military";
+  // UK military: 43C000-43CFFF
+  if (hex.startsWith("43c") || hex.startsWith("43d")) return "military";
+  // France military: 3A0000-3AFFFF
+  if (hex.startsWith("3a") || hex.startsWith("3b")) return "military";
+  // Germany military: 3F0000-3FFFFF
+  if (hex.startsWith("3f")) return "military";
+  // Russia military: 150000-15FFFF
+  if (hex.startsWith("15")) return "military";
+  // China military: 780000-78FFFF
+  if (hex.startsWith("78")) return "military";
+
+  // If callsign has no match, check for general aviation patterns
+  // GA often uses registration-like callsigns (N12345, G-ABCD, VH-ABC)
+  if (/^[A-Z]-[A-Z]{3,4}$/.test(cs) || /^N\d{1,5}[A-Z]{0,2}$/.test(cs) || /^VH-[A-Z]{3}$/.test(cs)) {
+    return "civilian";
+  }
+
+  // Default: commercial if has standard callsign format, otherwise civilian
+  if (/^[A-Z]{3}\d{1,4}[A-Z]?$/.test(cs)) return "commercial";
+  return "civilian";
+}
+
+function classifyVessel(mmsi: string, name: string): AssetCategory {
+  const nm = name.toUpperCase();
+
+  // Military vessel name patterns
+  const milPatterns = [
+    /\bUSS\b/, /\bHMS\b/, /\bHMAS\b/, /\bHMCS\b/, /\bHMNZS\b/,
+    /\bINS\b/, /\bTCG\b/, /\bJS\b/, /\bROKS\b/, /\bFGS\b/, /\bFS\b/,
+    /\bITS\b/, /\bSNS\b/, /\bHNLMS\b/, /\bKNM\b/, /\bHSWMS\b/,
+    /\bWARSHIP\b/, /\bFRIGATE\b/, /\bDESTROYER\b/, /\bCORVETTE\b/,
+    /\bCRUISER\b/, /\bSUBMARINE\b/, /\bCARRIER\b/, /\bMINESWEEPER\b/,
+    /\bAMPHIBIOUS\b/, /\bPATROL\b/, /\bGUNBOAT\b/, /\bLANDING\b/,
+    /\bNAVY\b/, /\bMILITARY\b/, /\bCOAST\s?GUARD\b/,
+  ];
+  for (const pat of milPatterns) {
+    if (pat.test(nm)) return "military";
+  }
+
+  // MMSI-based classification
+  // MID (Maritime Identification Digits) — first digit of MMSI
+  const d0 = mmsi.charAt(0);
+  // Warships/naval: MMSI starting with 111 (SAR aircraft), or other patterns
+  if (mmsi.startsWith("111") || mmsi.startsWith("112")) return "military";
+  // Coast stations: starting with 00
+  if (mmsi.startsWith("00")) return "military";
+
+  // Fishing vessels
+  if (/\bFISH|TRAWL|SEINER|LONGLINER\b/.test(nm)) return "civilian";
+
+  // Pleasure craft / sailing
+  if (/\bYACHT|SAIL|PLEASURE|KAYAK\b/.test(nm)) return "civilian";
+
+  // Tugs, pilots, dredgers — civilian/utility
+  if (/\bTUG|PILOT|DREDG|SUPPLY|SURVEY|RESEARCH\b/.test(nm)) return "civilian";
+
+  // Group ship stations: starting with 0
+  if (d0 === "0") return "civilian";
+
+  // Default: commercial (most AIS vessels are cargo/tanker/container)
+  return "commercial";
+}
+
+// Satellite name-based classification
+const MILITARY_SAT_PATTERNS = [
+  /\bUSA[\s-]?\d/i,           // USA-series (NRO/DoD designations)
+  /\bNOSS\b/i,                // Naval Ocean Surveillance
+  /\bMUOS\b/i,                // Mobile User Objective System
+  /\bWGS\b/i,                 // Wideband Global SATCOM
+  /\bAEHF\b/i,                // Advanced EHF
+  /\bMILSTAR\b/i,             // Milstar
+  /\bSBIRS\b/i,               // Space-Based Infrared
+  /\bDSP\b/i,                 // Defense Support Program
+  /\bLACROSSE\b/i,            // Lacrosse radar imaging
+  /\bORION\b/i,               // Orion SIGINT
+  /\bMENTOR\b/i,              // Mentor SIGINT
+  /\bTRUMPET\b/i,             // Trumpet SIGINT
+  /\bKEYHOLE\b/i,             // KH-series optical
+  /\bONYX\b/i,                // Onyx/Topaz
+  /\bNAVSTAR\b/i,             // GPS satellites (military origin)
+  /\bGPS\b/i,                 // GPS
+  /\bCOSMOS\b/i,              // Russian military
+  /\bKOSMOS\b/i,              // Russian military
+  /\bGLONASS\b/i,             // Russian nav (military)
+  /\bYAOGAN\b/i,              // Chinese military recon
+  /\bSHIJIAN\b/i,             // Chinese military
+  /\bBEIDOU\b/i,              // Chinese nav (military)
+  /\bGAOFEN\b/i,              // Chinese military imaging
+  /\bOFEK\b/i,                // Israeli military
+  /\bTECSAR\b/i,              // Israeli SAR
+  /\bHELIOS\b/i,              // French military imaging
+  /\bCSO\b/i,                 // French military optical
+  /\bSAR[\s-]?LUPE\b/i,       // German military SAR
+  /\bSKYNET\b/i,              // UK military comms
+  /\bSTARS\b/i,               // Space Tracking
+];
+
+const COMMERCIAL_SAT_PATTERNS = [
+  /\bSTARLINK\b/i,
+  /\bONEWEB\b/i,
+  /\bIRIDIUM\b/i,
+  /\bGLOBALSTAR\b/i,
+  /\bINTELSAT\b/i,
+  /\bSES\b/i,
+  /\bINMARSAT\b/i,
+  /\bEUTELSAT\b/i,
+  /\bTELESAT\b/i,
+  /\bAMOS\b/i,
+  /\bECHOSTAR\b/i,
+  /\bDIRECTV\b/i,
+  /\bSIRIUS[\s-]?XM\b/i,
+  /\bO3B\b/i,
+  /\bVIASAT\b/i,
+  /\bHUGHES\b/i,
+  /\bSATMEX\b/i,
+  /\bASIASAT\b/i,
+  /\bARABSAT\b/i,
+  /\bTURKSAT\b/i,
+  /\bNIGCOMSAT\b/i,
+  /\bKORSAT\b/i,
+  /\bTHAICOM\b/i,
+  /\bAPSTAR\b/i,
+  /\bBRASILSAT\b/i,
+  /\bABS\b/i,
+  /\bPLANET\b/i,                // Planet Labs (commercial EO)
+  /\bSPIRE\b/i,                 // Spire Global
+  /\bHAWKEYE\b/i,               // HawkEye 360
+  /\bCAPELLA\b/i,               // Capella Space
+  /\bICEYE\b/i,                 // ICEYE SAR
+  /\bMAXAR\b/i,                 // Maxar
+  /\bWORLDVIEW\b/i,             // Maxar WorldView
+  /\bGEOEYE\b/i,                // Maxar GeoEye
+  /\bSUPERDOVE\b/i,             // Planet SuperDove
+  /\bFLOCK\b/i,                 // Planet Flock
+];
+
+function classifySatellite(name: string): AssetCategory {
+  for (const pat of MILITARY_SAT_PATTERNS) {
+    if (pat.test(name)) return "military";
+  }
+  for (const pat of COMMERCIAL_SAT_PATTERNS) {
+    if (pat.test(name)) return "commercial";
+  }
+  // Scientific / civil government satellites
+  // ISS, Hubble, NOAA, Landsat, Terra, Aqua, etc.
+  return "civilian";
+}
+
 function getSeverityValue(threatLevel: string): number {
   const values: Record<string, number> = {
     critical: 5,
@@ -542,6 +876,7 @@ interface SelectedVessel {
   sog: number;
   cog: number;
   navstat: number;
+  category: AssetCategory;
 }
 
 interface SelectedFlight {
@@ -552,6 +887,7 @@ interface SelectedFlight {
   country: string;
   altitude: number;
   velocity: number;
+  category: AssetCategory;
 }
 
 interface SelectedSatellite {
@@ -559,6 +895,7 @@ interface SelectedSatellite {
   latitude: number;
   name: string;
   alt: number;
+  category: AssetCategory;
 }
 
 interface SelectedCable {
@@ -613,6 +950,7 @@ export function ThreatMap() {
   const [isCountryLoading, setIsCountryLoading] = useState(false);
   const [blinkOpacity, setBlinkOpacity] = useState(0.4);
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   // ── Flight, satellite & vessel data ─────────────────────────────────────────
   const [aircraft, setAircraft] = useState<AircraftState[]>([]);
@@ -834,6 +1172,7 @@ export function ThreatMap() {
             sog: v.sog,
             cog: v.cog,
             navstat: v.navstat,
+            category: classifyVessel(v.mmsi || "", v.name || ""),
           },
           geometry: {
             type: "Point" as const,
@@ -858,6 +1197,7 @@ export function ThreatMap() {
             altitude: a.baro_altitude ?? 0,
             velocity: a.velocity ?? 0,
             track: a.true_track ?? 0,
+            category: classifyAircraft(a.callsign || "", a.icao24 || ""),
           },
           geometry: {
             type: "Point" as const,
@@ -877,6 +1217,7 @@ export function ThreatMap() {
           id: `sat-${i}`,
           name: s.name,
           alt: s.alt,
+          category: classifySatellite(s.name),
         },
         geometry: {
           type: "Point" as const,
@@ -954,6 +1295,7 @@ export function ThreatMap() {
             sog: feature.properties?.sog ?? 0,
             cog: feature.properties?.cog ?? 0,
             navstat: feature.properties?.navstat ?? -1,
+            category: (feature.properties?.category as AssetCategory) || "commercial",
           });
           selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
           setSelectedFlight(null); setSelectedSatellite(null);
@@ -968,6 +1310,7 @@ export function ThreatMap() {
             country: feature.properties?.country || "Unknown",
             altitude: feature.properties?.altitude ?? 0,
             velocity: feature.properties?.velocity ?? 0,
+            category: (feature.properties?.category as AssetCategory) || "civilian",
           });
           selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
           setSelectedVessel(null); setSelectedSatellite(null);
@@ -979,6 +1322,7 @@ export function ThreatMap() {
             latitude: coords[1],
             name: feature.properties?.name || "Unknown Satellite",
             alt: feature.properties?.alt ?? 0,
+            category: (feature.properties?.category as AssetCategory) || "civilian",
           });
           selectEvent(null); setSelectedEntityLocation(null); setSelectedMilitaryBase(null);
           setSelectedVessel(null); setSelectedFlight(null);
@@ -1072,6 +1416,38 @@ export function ThreatMap() {
     }
   }, []);
 
+  // Configure globe projection, atmosphere, and fog when map loads
+  const applyGlobeSettings = useCallback((mapInstance: mapboxgl.Map) => {
+    mapInstance.setProjection("globe");
+    mapInstance.setFog({
+      color: "rgba(10, 10, 20, 0.9)",
+      "high-color": "rgba(20, 30, 60, 0.8)",
+      "horizon-blend": 0.08,
+      "space-color": "#0a0a14",
+      "star-intensity": 0.6,
+    });
+  }, []);
+
+  const handleMapLoad = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    setMapLoaded(true);
+    // Access underlying Mapbox GL instance
+    const gl = (map.getMap?.() ?? map) as unknown as mapboxgl.Map;
+    applyGlobeSettings(gl);
+  }, [applyGlobeSettings]);
+
+  // Re-apply globe settings when map style changes (style load resets projection)
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const gl = (mapRef.current.getMap?.() ?? mapRef.current) as unknown as mapboxgl.Map;
+
+    const reapplyGlobe = () => applyGlobeSettings(gl);
+
+    gl.on("style.load", reapplyGlobe);
+    return () => { gl.off("style.load", reapplyGlobe); };
+  }, [mapLoaded, mapSkin, applyGlobeSettings]);
+
   if (!MAPBOX_TOKEN) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-card">
@@ -1087,7 +1463,7 @@ export function ThreatMap() {
     );
   }
 
-  // CSS filter per skin — applied to the map wrapper inside the circle
+  // CSS filter per skin — applied to the map wrapper
   const skinFilter: Partial<Record<string, string>> = {
     flir: "sepia(1) saturate(4) hue-rotate(85deg) brightness(0.65) contrast(1.5)",
     nvg:  "saturate(0) brightness(1.3) contrast(1.4)",
@@ -1095,13 +1471,9 @@ export function ThreatMap() {
     snow: "saturate(0.15) brightness(1.4) contrast(0.85)",
   };
 
-  // The lens circle — nearly full screen, offset left to make room for panels
-  // Video shows circle takes ~70% of width, centered slightly right of the left panel
-  const lensSize = "min(72vh, 72vw)";
-
   return (
-    // ── Root: full black background ──────────────────────────────────────────
-    <div style={{ position: "relative", width: "100%", height: "100%", background: "#000", overflow: "hidden" }}>
+    // ── Root: full-screen dark background ────────────────────────────────────
+    <div style={{ position: "relative", width: "100%", height: "100%", background: "#0a0a14", overflow: "hidden" }}>
 
       {/* ── WorldviewHUD — classified intel overlay (always full-screen) ── */}
       <WorldviewHUD
@@ -1113,18 +1485,10 @@ export function ThreatMap() {
       {/* ── Panoptic overlay (full-screen) ── */}
       {showPanoptic && <PanopticOverlay />}
 
-      {/* ── Circular lens container — map lives INSIDE here ── */}
+      {/* ── Full-screen map container ── */}
       <div style={{
         position: "absolute",
-        top: "50%",
-        // Offset right to sit between the left panel (~280px) and right panel (~260px)
-        left: "calc(50% + 10px)",
-        transform: "translate(-50%, -50%)",
-        width: lensSize,
-        height: lensSize,
-        borderRadius: "50%",
-        overflow: "hidden",
-        boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 0 0 2px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.5)",
+        inset: 0,
         zIndex: 3,
       }}>
 
@@ -1137,8 +1501,10 @@ export function ThreatMap() {
             ref={mapRef}
             {...viewport}
             onMove={(evt) => setViewport(evt.viewState)}
+            onLoad={handleMapLoad}
             mapStyle={MAP_STYLES[mapSkin] ?? MAP_STYLES.eo}
             mapboxAccessToken={MAPBOX_TOKEN}
+            projection={{ name: "globe" }}
             style={{ width: "100%", height: "100%" }}
             interactiveLayerIds={[
               ...(showClusters ? ["clusters"] : []),
@@ -1156,7 +1522,7 @@ export function ThreatMap() {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             attributionControl={false}
-            maxPitch={60}
+            maxPitch={85}
           >
 
       {/* Country highlight layer */}
@@ -1411,12 +1777,31 @@ export function ThreatMap() {
         >
           <div className="min-w-[200px] p-2">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20">
-                <span className="text-cyan-400 text-sm">⚓</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                selectedVessel.category === "military" ? "bg-red-500/20" :
+                selectedVessel.category === "civilian" ? "bg-green-500/20" :
+                "bg-cyan-500/20"
+              }`}>
+                <span className={`text-sm ${
+                  selectedVessel.category === "military" ? "text-red-400" :
+                  selectedVessel.category === "civilian" ? "text-green-400" :
+                  "text-cyan-400"
+                }`}>⚓</span>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">{selectedVessel.name}</h3>
-                <span className="text-xs text-cyan-400">MMSI: {selectedVessel.mmsi}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs ${
+                    selectedVessel.category === "military" ? "text-red-400" :
+                    selectedVessel.category === "civilian" ? "text-green-400" :
+                    "text-cyan-400"
+                  }`}>MMSI: {selectedVessel.mmsi}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider ${
+                    selectedVessel.category === "military" ? "bg-red-500/20 text-red-400" :
+                    selectedVessel.category === "civilian" ? "bg-green-500/20 text-green-400" :
+                    "bg-cyan-500/20 text-cyan-400"
+                  }`}>{selectedVessel.category}</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1 text-xs text-muted-foreground">
@@ -1448,12 +1833,31 @@ export function ThreatMap() {
         >
           <div className="min-w-[200px] p-2">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
-                <span className="text-emerald-400 text-sm">✈</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                selectedFlight.category === "military" ? "bg-red-500/20" :
+                selectedFlight.category === "civilian" ? "bg-amber-500/20" :
+                "bg-emerald-500/20"
+              }`}>
+                <span className={`text-sm ${
+                  selectedFlight.category === "military" ? "text-red-400" :
+                  selectedFlight.category === "civilian" ? "text-amber-400" :
+                  "text-emerald-400"
+                }`}>✈</span>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">{selectedFlight.callsign}</h3>
-                <span className="text-xs text-emerald-400">{selectedFlight.country}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs ${
+                    selectedFlight.category === "military" ? "text-red-400" :
+                    selectedFlight.category === "civilian" ? "text-amber-400" :
+                    "text-emerald-400"
+                  }`}>{selectedFlight.country}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider ${
+                    selectedFlight.category === "military" ? "bg-red-500/20 text-red-400" :
+                    selectedFlight.category === "civilian" ? "bg-amber-500/20 text-amber-400" :
+                    "bg-emerald-500/20 text-emerald-400"
+                  }`}>{selectedFlight.category}</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1 text-xs text-muted-foreground">
@@ -1479,12 +1883,31 @@ export function ThreatMap() {
         >
           <div className="min-w-[200px] p-2">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/20">
-                <span className="text-orange-400 text-sm">◉</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                selectedSatellite.category === "military" ? "bg-red-500/20" :
+                selectedSatellite.category === "commercial" ? "bg-orange-500/20" :
+                "bg-purple-500/20"
+              }`}>
+                <span className={`text-sm ${
+                  selectedSatellite.category === "military" ? "text-red-400" :
+                  selectedSatellite.category === "commercial" ? "text-orange-400" :
+                  "text-purple-400"
+                }`}>◉</span>
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">{selectedSatellite.name}</h3>
-                <span className="text-xs text-orange-400">Satellite</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs ${
+                    selectedSatellite.category === "military" ? "text-red-400" :
+                    selectedSatellite.category === "commercial" ? "text-orange-400" :
+                    "text-purple-400"
+                  }`}>Satellite</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider ${
+                    selectedSatellite.category === "military" ? "bg-red-500/20 text-red-400" :
+                    selectedSatellite.category === "commercial" ? "bg-orange-500/20 text-orange-400" :
+                    "bg-purple-500/20 text-purple-400"
+                  }`}>{selectedSatellite.category}</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1 text-xs text-muted-foreground">
@@ -1653,7 +2076,7 @@ export function ThreatMap() {
     </Map>
         </div>{/* end filter wrapper */}
 
-        {/* ── Skin overlays — INSIDE the circle ── */}
+        {/* ── Skin overlays — full-screen ── */}
 
         {/* CRT: heavy horizontal scanlines over satellite */}
         {mapSkin === "crt" && (
@@ -1715,33 +2138,13 @@ export function ThreatMap() {
           }} />
         )}
 
-        {/* Inner lens vignette ring (darkens edges within the circle) */}
+        {/* Subtle edge vignette for depth */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 6, pointerEvents: "none",
-          borderRadius: "50%",
-          background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.85) 100%)",
+          background: "radial-gradient(ellipse at center, transparent 60%, rgba(10,10,20,0.4) 100%)",
         }} />
 
-      </div>{/* end circular lens */}
-
-      {/* ── Floating VEH / SAT labels in the black outer area ── */}
-      <FloatingLabels satellites={satellites} vessels={vessels} />
-
-      {/* ── Corner bracket decorations (outside the circle) ── */}
-      {(["tl","tr","bl","br"] as const).map((corner) => (
-        <div key={corner} style={{
-          position: "absolute", zIndex: 9, pointerEvents: "none",
-          ...(corner === "tl" ? { top: "8%", left: "30%" } :
-              corner === "tr" ? { top: "8%", right: "2%" } :
-              corner === "bl" ? { bottom: "10%", left: "30%" } :
-                                { bottom: "10%", right: "2%" }),
-          width: 14, height: 14,
-          borderTop: corner.startsWith("t") ? "1px solid rgba(255,255,255,0.12)" : "none",
-          borderBottom: corner.startsWith("b") ? "1px solid rgba(255,255,255,0.12)" : "none",
-          borderLeft: corner.endsWith("l") ? "1px solid rgba(255,255,255,0.12)" : "none",
-          borderRight: corner.endsWith("r") ? "1px solid rgba(255,255,255,0.12)" : "none",
-        }} />
-      ))}
+      </div>{/* end map container */}
 
       {/* ── CCTV Mesh panel (opens when layer toggled) ── */}
       {(layers.cctv || showCCTVPanel) && (
@@ -1757,59 +2160,6 @@ export function ThreatMap() {
         </div>
       )}
 
-    </div>
-  );
-}
-
-// ── Floating VEH / SAT labels in the black border area ───────────────────────
-function FloatingLabels({
-  satellites,
-  vessels,
-}: {
-  satellites: SatellitePosition[];
-  vessels: VesselState[];
-}) {
-  const { mapSkin } = useMapStore();
-  const color = mapSkin === "nvg" ? "#39ff14" : mapSkin === "crt" ? "#00ffcc" : "rgba(255,200,80,0.7)";
-
-  // Generate stable random positions around the circle edge (outside it)
-  const satLabels = satellites.slice(0, 18).map((s, i) => {
-    const angle = (i / 18) * 2 * Math.PI - Math.PI / 2;
-    const r = 50 + (i % 3) * 3; // 50–56% from center — just outside 72/2=36% radius
-    const x = 50 + r * Math.cos(angle);
-    const y = 50 + r * Math.sin(angle);
-    return { label: s.name.slice(0, 10), x, y };
-  });
-
-  const vehLabels = vessels.slice(0, 8).map((v, i) => {
-    const angle = ((i + 2) / 10) * 2 * Math.PI;
-    const r = 47 + (i % 4) * 2;
-    const x = 50 + r * Math.cos(angle);
-    const y = 50 + r * Math.sin(angle);
-    return { label: `VEH-${(v.mmsi || "").slice(-4) || String(1000 + i)}`, x, y };
-  });
-
-  return (
-    <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
-      {[...satLabels.map(l => ({ ...l, prefix: "SAT" })), ...vehLabels.map(l => ({ ...l, prefix: "VEH" }))].map((item, i) => {
-        // Only show if outside the circle area (x or y far from center)
-        const dx = item.x - 50, dy = item.y - 50;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 38) return null; // too close to center — inside circle
-        return (
-          <div key={i} style={{
-            position: "absolute",
-            left: `${item.x}%`, top: `${item.y}%`,
-            transform: "translate(-50%, -50%)",
-            fontSize: 7, fontFamily: "monospace", fontWeight: 600,
-            color, letterSpacing: "0.5px",
-            whiteSpace: "nowrap",
-            opacity: 0.7,
-          }}>
-            {item.label}
-          </div>
-        );
-      })}
     </div>
   );
 }

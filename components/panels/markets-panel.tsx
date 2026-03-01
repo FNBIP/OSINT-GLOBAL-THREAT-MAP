@@ -27,38 +27,38 @@ function Ticker({ q }: { q: Quote }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "5px 10px",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        padding: "8px 14px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.8)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>
           {q.label}
         </span>
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: "0.5px" }}>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.5px" }}>
           {q.short}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.9)", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)", fontVariantNumeric: "tabular-nums" }}>
           {q.price != null
             ? q.price >= 1000
               ? `$${q.price.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
               : `$${q.price.toFixed(2)}`
             : "—"}
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 60, justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 70, justifyContent: "flex-end" }}>
           {q.change != null ? (
             <>
               {up
-                ? <TrendingUp style={{ width: 10, height: 10, color: "#00ff88" }} />
-                : <TrendingDown style={{ width: 10, height: 10, color: "#ff4444" }} />}
-              <span style={{ fontSize: 10, fontWeight: 600, color: up ? "#00ff88" : "#ff4444", fontVariantNumeric: "tabular-nums" }}>
+                ? <TrendingUp style={{ width: 12, height: 12, color: "#00ff88" }} />
+                : <TrendingDown style={{ width: 12, height: 12, color: "#ff4444" }} />}
+              <span style={{ fontSize: 12, fontWeight: 600, color: up ? "#00ff88" : "#ff4444", fontVariantNumeric: "tabular-nums" }}>
                 {up ? "+" : ""}{q.change.toFixed(2)}%
               </span>
             </>
           ) : (
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>—</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>—</span>
           )}
         </div>
       </div>

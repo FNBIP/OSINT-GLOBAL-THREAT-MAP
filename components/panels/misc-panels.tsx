@@ -46,23 +46,28 @@ function NewsListPanel({ title, keywords, maxItems = 6 }: {
   return (
     <PanelShell title={title} live count={filtered.length || null}>
       {isLoading && filtered.length === 0 ? (
-        <div style={{ padding: "14px", fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>Loading...</div>
+        <div style={{ padding: "20px", fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center" }}>Loading...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding: "14px", fontSize: 10, color: "rgba(255,255,255,0.25)", textAlign: "center" }}>No articles found</div>
+        <div style={{ padding: "20px", fontSize: 12, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>No articles found</div>
       ) : (
-        <div style={{ overflowY: "auto", maxHeight: 220 }}>
+        <div style={{ overflowY: "auto", maxHeight: 280 }}>
           {filtered.map((item) => (
             <a key={item.id} href={item.link} target="_blank" rel="noopener noreferrer"
               style={{ textDecoration: "none", display: "block" }}>
               <div
-                style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                style={{
+                  padding: "10px 14px",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  cursor: "pointer",
+                  transition: "background 0.1s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", lineHeight: 1.4, marginBottom: 3 }}>{item.title}</div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>{item.source}</span>
-                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>{timeAgo(item.pubDate)}</span>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", lineHeight: 1.5, marginBottom: 4 }}>{item.title}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>{item.source}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{timeAgo(item.pubDate)}</span>
                 </div>
               </div>
             </a>
